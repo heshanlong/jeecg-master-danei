@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>车辆使用统计</title>
+    <script src="./js/common.js"></script>
+    <script src="component/calendar.js"></script>
+    <style>
+        .top .condition { display: flex; }
+        .top .condition .el-select { width: 80px !important; }
+        .top .condition > .el-input { flex: 1; margin-left: 10px; }
+        .top .condition .calendar { flex: 1; margin-left: 10px; }
+    </style>
+</head>
+<body>
+<div id="violationQuery" class="content">
+    <collapse :show="showSearch">
+        <el-row :gutter="30" class="top">
+            <el-col :xs="24" :sm="12" :md="8"><span>车牌号：</span><el-input v-model="params.licensePlate"></el-input></el-col>
+            <el-col :xs="24" :sm="12" :md="8">
+                <span>车辆类型：</span>
+                <el-select multiple collapse-tags v-model="vehicleType" clearable>
+                    <el-option-group v-for="group in vehicleTypeList" :key="group.id" :label="group.typeName">
+                        <el-option v-for="item in group.items" :key="item.id" :label="item.itemName" :value="item.id"></el-option>
+                    </el-option-group>
+                </el-select>
+            </el-col>
+            <el-col :xs="24" :sm="12" :md="8"><span>所属/申办单位：</span><el-input v-model="params.company"></el-input></el-col>
+            <el-col :xs="24" :sm="12" :md="8">
+                <span>使用时间：</span>
+                <p class="condition">
+                    <el-select v-model="relation.timeRel">
+                        <el-option label="小于" value="lt"></el-option>
+                    </el-select>
+                    <el-input v-model="params.maxUseTime"></el-input>
+                </p>
+            </el-col>
+            <el-col :xs="24" :sm="12" :md="8">
+                <span>行驶里程：</span>
+                <p class="condition">
+                    <el-select v-model="relation.mileageRel">
+                        <el-option label="小于" value="lt"></el-option>
+                    </el-select>
+                    <el-input v-model="params.maxMileage"></el-input>
+                </p>
+            </el-col>
+            <el-col :xs="24" :sm="12" :md="8">
+                <span>驾驶次数：</span>
+                <p class="condition">
+                    <el-select v-model="relation.timesRel">
+                        <el-option label="小于" value="lt"></el-option>
+                    </el-select>
+                    <el-input v-model="params.maxNumber"></el-input>
+                </p>
+            </el-col>
+            <el-col :xs="24" :sm="12" :md="8">
+                <span>查询方式：</span>
+                <p class="condition last">
+                    <el-select v-model="params.dateType">
+                        <el-option label="按日" :value="0"></el-option>
+                        <el-option label="按月" :value="1"></el-option>
+                        <el-option label="按年" :value="2"></el-option>
+                    </el-select>
+                    <calendar :type="params.style" :begin-time.sync="params.beginTime" :end-time.sync="params.endTime"></calendar>
+                </p>
+            </el-col>
+            <el-col :xs="24" :sm="12" :md="8">
+                <p class="group">
+                    <button class="topBtn" @click="getData(1)"><i class="glyphicon glyphicon-search"></i> 查询</button>
+                    <button class="topBtn" @click="reset('vehicleType')"><i class="glyphicon glyphicon-repeat"></i> 重置</button>
+                </p>
+            </el-col>
+        </el-row>
+    </collapse>
+    <div class="toolbar clearfix">
+        <p class="left">
+            <button @click="showSearch=!showSearch"><i class="glyphicon glyphicon-search"></i> 检索</button>
+        </p>
+        <control :header-list="headerList" ref="control" @refresh="getData" @change-style="tableStyle=!tableStyle" @change-header="changeHeader"></control>
+    </div>
+    <table-list ref="tableList" :data-source="dataSource" :loading="loading" :total="total"
+                :pages="pages" :table-style="tableStyle" :header-list="headerList">
+    </table-list>
+</div>
+</body>
+<script>
+  new Vue({
+    el: '#violationQuery',
+    mixins: [mixin],
+    data: {
+      relation: {
+        timeRel: 'lt',
+        mileageRel: 'lt',
+        timesRel: 'lt'
+      },
+      params: {
+        dateType: 0,
+        startTime: getToday('date'),
+        endTime: getToday('date')
+      },
+      vehicleTypeList: [],
+      vehicleType: []
+    },
+    mounted () {
+      this.headerList = [
+        {label: '车牌号', prop: 'vehiclePlate', width: 85, show: true},
+        {label: '车辆类型', prop: 'itemName', width: 100, show: true },
+        {label: '所属/申办单位', prop: 'company', width: 160, show: true },
+        {label: '开始日期', prop: 'startTime', width: 100, show: true },
+        {label: '结束日期', prop: 'endTime', width: 100, show: true },
+        {label: '使用时间', prop: 'useTime', width: 80, show: true },
+        {label: '行驶里程', prop: 'mileage', func: m => `${m / 10}km`, width: 80, show: true },
+        {label: '驾驶次数', prop: 'number', width: 80, show: true }
+      ]
+      getVehicleType().then( result => { this.vehicleTypeList = result })
+      this.getDataMethod = getVehicleStatistics
+      this.getData()
+    },
+    watch: {
+      vehicleType (value) {
+        this.params.vehicleCategory = value.join(',')
+      },
+      'params.dateType' (value) {
+        let type = ['day', 'month', 'year'][value]
+        this.params.endTime = this.params.beginTime = getToday(type)
+      }
+    }
+  })
+</script>
+</html>

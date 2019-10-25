@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no" />
+    <title></title>
+
+    <style>
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        #map {
+            position: relative;
+            height: 100%;
+        }
+
+        #toolbar {
+            position: relative;
+            padding-top: 5px;
+            padding-bottom: 10px;
+        }
+        .btn2-top10{
+            margin-top: 10px;
+        }
+    </style>
+    <link href='../css/bootstrap.min.css' rel='stylesheet' />
+    <link href='../css/bootstrap-responsive.min.css' rel='stylesheet' />
+</head>
+
+<body>
+<div id="toolbar">
+    <input type="button" class="btn btn2-top10" value="绘多边形" onclick="draw_polygon()" />
+    <input type="button" class="btn btn2-top10" value="清除绘制" onclick="clearFeatures()" />
+    <input type="button" class="btn btn2-top10" value="点击可编辑绘制区域信息" id="editBtn" onclick="editBtn()">
+    <!--<input type="button" class="btn" value="查看testdata" id="testdata" onclick="searchTestData()">-->
+    <!--<input type="button" class="btn" value="加载数据" onclick="addPloygon()" />-->
+    <!--<input type="button" class="btn" value="居中" onclick="ceshi_center()">-->
+    <div style="display: inline-block" >
+    <input type="text" id="polyLonlat" value="" class="btn btn2-top10">
+    <input type="button" class="btn btn2-top10" id="polyLonlatBtn" value="搜索" onclick="polyLonlatBtnClick()">
+    <!--onkeydown="ceshi_center(value)-->
+    </div>
+</div>
+<div id="map"></div>
+<!--右键出现的居中层-->
+<div id="myMenu">
+    <ul style="margin-top: 0px; margin-bottom: 0px;margin-left: 0px" >
+        <li onclick="setCenter()" >
+            <div style="float:left;padding-right: 5px;width:30px;height:30px"><img src="../examples/images/center.png" /></div>
+            <div style="float:left;width:52px;height:30px; text-align: center; font-size: 15px;">居中</div> </li>
+        <li onclick="deleteSelect()">
+            <div style="float:left;padding-right: 5px;width:30px;height:30px"><img src="../examples/images/delete.png" /></div>
+            <div style="float:left;width:52px;height:30px; text-align: center; font-size: 15px;">删除</div> 
+        </li>
+        
+    </ul>
+</div>
+
+<script type="text/javascript" src="../js/libs/SuperMap.Include.js"></script>
+<script type="text/javascript">
+   var map, layer, drawPolygon, polygonLayer, selectFeature, snapPolygon;
+   //拖动要素大小的控件名字
+   var modifyFeature;
+   //控制捕捉对象控件的bool
+   var snapState=false;
+   //点向量（用于右键的点）
+   var gFeature;
+   //menu(通过id查找到myMenu)
+   var menu;
+   //控制是否可以编辑信息框的信息
+   var editBool=false;
+
+
+   var drawArr = [];
+   var infowin = null;
+   var ploygonAdded = false;
+
+   var selectStyle = {
+      //十六进制填充颜色，默认为”#ee9900”。
+      fillColor: "#CC0000",
+      //填充不透明度。默认为0.4。
+      fillOpacity: 0.7,
+      //十六进制描边颜色。
+      strokeColor: "#CAAE5B",
+      // strokeColor: "blue",
+      //像素描边宽度，默认为1。
+      strokeWidth: 1
+   };
+
+
+   var url = "http://10.10.12.29:8090/iserver/services/map-ugcv5-FeiHangQuDaoMianXunJianZhuanTiTu/rest/maps/飞行区道面巡检专题图";
+   //var url = "http://10.128.103.61:8031/map/iserver/services/map-ugcv5-FeiHangQuDaoMianXunJianZhuanTiTu/rest/maps/%E9%A3%9E%E8%A1%8C%E5%8C%BA%E9%81%93%E9%9D%A2%E5%B7%A1%E6%A3%80%E4%B8%93%E9%A2%98%E5%9B%BE";
+
+   //加载地图的数据
+   var testdata = [
+      {
+         "id": 111,
+         "point": "113.29517511208,23.394283812894;113.30009507264,23.392833969445;113.29847885371,23.396541765806;113.29517511208,23.394283812894",
+         "content": "城规515机位施工"
+      },
+      {
+         "id": 222,
+         "point": "113.30263824065,23.393190488326;113.30551415962,23.392334843012;113.30615589361,23.397254803568;113.30263824065,23.393190488326",
+         "content": "T1航站楼1楼施工"
+      }
+   ];
+   //查看打印testdata
+   function searchTestData() {
+      console.log(testdata);
+   }
+
+   function init() {
+      //声明一个矢量图层，第一个参数是图层名
+      polygonLayer = new SuperMap.Layer.Vector("施工区域");
+
+      //创建捕捉对象
+      snapPolygon = new SuperMap.Snap([polygonLayer], 10, 10, {actived: true});
+
+      //实例化一个DrawFeature控件，调用绘制多边形的事件处理器Handler.Polygon
+      //就是绘制多边形
+      drawPolygon = new SuperMap.Control.DrawFeature(polygonLayer, SuperMap.Handler.Polygon);
+      //  然后创建一个要素编辑控件
+      //就是拖动多边形大小
+      modifyFeature=new SuperMap.Control.ModifyFeature(polygonLayer);
+      modifyFeature.snap=snapPolygon;
+
+      menu= document.getElementById("myMenu");
+
+
+      //监听 featureadded 事件，当添加要素时会触发此事件
+      //会传入事件参数，事件参数包含了绘制的要素 feature 信息
+      drawPolygon.events.on({
+         "featureadded": drawPolygonCompleted
+      });
+      //监听modifyFeature的改变结束事件
+      //afterfeaturemodified：当图层上的要素编辑完成时，触发该事件
+      modifyFeature.events.on({
+         "afterfeaturemodified": drawPolygonCompleted,
+         "beforefeaturemodified":editMessage,//开始编辑时触发
+      });
+
+
+      var callbacks = {
+         //鼠标移入
+         over: function(currentFeature, e){
+            var cur = currentFeature;
+            if (cur.attributes.hasOwnProperty('id')) {
+               onFeatureSelect(cur, e);
+            }
+         },
+         //鼠标移出
+         out: function(currentFeature, e){
+            if (currentFeature.attributes.hasOwnProperty('id')) {
+               closeInfoWin();
+            }
+         },
+         //鼠标右击(暂时没有生效)
+         rightclick: creatMenu
+      };
+
+      //定义要素选中控件，在polygonLayer上进行要素选择
+      selectFeature = new SuperMap.Control.SelectFeature(polygonLayer, {
+            selectStyle: selectStyle,
+            callbacks: callbacks,
+      });
+
+      //在id为map的页面元素中创建一个map地图对象，并添加控件
+      map = new SuperMap.Map("map", {
+         controls: [
+            new SuperMap.Control.Zoom(),
+            new SuperMap.Control.Navigation(),
+            new SuperMap.Control.LayerSwitcher(),//就是右上角的移上去弹出框框的
+            drawPolygon,//绘制控件
+            selectFeature,//选中控件
+            modifyFeature,//拖动改变大小控件
+         ],
+
+
+         //左键点击地图隐藏menu
+         /*
+         eventListeners:{"movestart":function(){
+               menu.style.visibility="hidden";
+               console.log('eventListeners');
+            },
+            "click":function(){
+               menu.style.visibility="hidden";
+               console.log('eventListeners');
+            }}
+           */
+      });
+
+      //激活控件(选中矢量图层的控件)
+      selectFeature.activate();
+
+      //向服务端发送请求获取后，获取透明、使用服务端缓存的图层   （透明的、获取缓存的：一般为null）
+      layer = new SuperMap.Layer.TiledDynamicRESTLayer("飞行区道面巡检专题图", url, null, {
+         maxResolution: "auto"
+      });
+      //图层初始化完成后的回调函数
+      layer.events.on({
+         "layerInitialized": addLayer
+      });
+
+      //拖动可改变大小
+      addPloygon();
+      //激活拖动组件
+      edit_feature();
+      //右键点击（暂时不用）
+      // addPointRight();
+
+
+   }
+
+   function addLayer() {
+      //地图要显示的图层
+      map.addLayers([layer, polygonLayer]);
+      //显示地图范围
+      // map.setCenter(new SuperMap.LonLat(113.3, 23.4), 1);
+      map.setCenter(new SuperMap.LonLat(113.3, 23.4), 1);
+
+   }
+
+
+    /**
+     * 双击绘制区域弹出input填写弹出框信息
+     */
+    function onFeatureSelected(currentFeature){
+       console.log(321);
+    }
+
+
+
+   // 华丽的分割线（右键点击然后居中）
+   /***
+    * 搜索框输入居中居中
+    */
+   document.getElementById('polyLonlat').onkeydown=function (e) {
+      if (e.code=='Enter'){
+         var value=this.value
+         ceshi_center(value)
+      }
+   }
+   function polyLonlatBtnClick() {
+      valuee=document.getElementById('polyLonlat').value;
+      ceshi_center(valuee)
+   }
+   function ceshi_center(value){
+      console.log(value);
+      numx=0;
+      numy=0;
+      for(var i = 0; i <testdata.length ; i++) {
+        if (testdata[i]['content']==value) {
+           num1=testdata[i]['point'].split(';')
+           for(var j = 0; j <num1.length ; j++) {
+                numx+= Number(num1[j].split(',')[0])
+                numy+= Number(num1[j].split(',')[1])
+           }
+
+           console.log(numx,numy);
+           //城规515机位施工""T1航站楼1楼施工"
+           map.setCenter(new SuperMap.LonLat(numx/num1.length, numy/num1.length), 2.5);
+
+           //搜索区域移动到中间以后弹出信息框
+
+           var currentFea={};
+           currentFea.attributes={
+              obj:testdata[i]
+           };
+           //坐标 城规515机位施工
+           var bodys=document.getElementsByTagName('body')
+           var coord={
+              x:bodys[0].offsetWidth/2,
+              y:bodys[0].offsetHeight/2
+           };
+           console.log(coord);
+           //居中以后打开弹出框并在两秒后关闭以提示用户搜索的是这个
+           setTimeout(function () {
+
+              onFeatureSelect(currentFea,coord)
+           },1000);
+           setTimeout(function () {
+
+              closeInfoWin()
+           },3000);
+
+
+           return;
+        }
+      }
+      alert('没有绘制这个区域')
+
+   }
+   /***
+    * 搜索框输入居中居中
+    */
+
+
+   /***
+    * 和右键点击居中有关，暂时没有用
+    */
+   function creatMenu(currentFeature){
+      console.log(123);
+      var centerPoint= currentFeature.geometry.getCentroid();
+      var pos= new SuperMap.LonLat(centerPoint.x,centerPoint.y);
+      var p=map.getPixelFromLonLat(pos);
+      menu.style.left= p.x+"px";
+      menu.style.top= p.y+50+"px";
+      menu.style.visibility="visible";
+      gFeature=currentFeature;
+
+   }
+   function addPointRight() {
+      //创建EventUtil对象
+      var EventUtil={
+         addHandler:function(element,type,handler){
+            if(element.addEventListener){
+               element.addEventListener(type,handler,false);
+            }
+            else if(element.attachEvent){
+               element.attachEvent("on"+type,handler);
+            }
+         },
+         getEvent:function(event){
+            return event?event:window.event;
+         },
+//取消事件的默认行为
+         preventDefault:function(event){
+            if(event.preventDefault){
+               event.preventDefault();
+            }else{
+               event.returnValue= false;
+            }
+         }
+      };
+      EventUtil.addHandler(window,"load",function(event){
+
+         EventUtil.addHandler(menu,"contextmenu",function(event){
+            event= EventUtil.getEvent(event);
+            EventUtil.preventDefault(event);
+            menu.style.visibility="visible";
+         });
+         EventUtil.addHandler(document,"click",function(event){
+            menu.style.visibility="hidden";
+         });
+      });
+   }
+
+   //居中和删除
+   function setCenter(){
+      var centerP= gFeature.geometry.getCentroid();
+      menu.style.visibility="hidden";
+      map.setCenter(new SuperMap.LonLat(centerP.x,centerP.y),0);
+   }
+   function deleteSelect(){
+      menu.style.visibility="hidden";
+      vectorLayer.removeFeatures(gFeature);
+
+
+   }
+   //华丽的分割线（右键点击然后居中）
+   /***
+    * 和右键点击居中有关，暂时没有用
+    */
+
+
+   /**
+    * 华丽的分割线(拖动改变大小相关方法)
+    */
+   function edit_feature(){
+      deactiveAll();
+      modifyFeature.activate();
+      snapPolygon.on();
+      snapState=true;
+   }
+   //关闭可编辑绘制区域大小（关闭相关控件）
+   function deactiveAll(){
+      modifyFeature.deactivate();
+      deactivate_snap_all();
+   }
+   //关闭激活捕捉
+   function deactivate_snap_all(){
+      snapState=false;
+      snapPolygon.off();
+   }
+   //激活捕捉
+   function activate_snap_all(){
+      snapState=true;
+      snapPolygon.on();
+   }
+   //捕捉实例snapPolygon
+   //调用active方法激活拖动改变绘制面大小
+   /**
+    * 华丽的分割线(拖动改变大小相关方法)
+    */
+
+
+   //选中要素的回调
+   function onFeatureSelect(currentFeature, e) {
+      var plx = e.x;
+      var ply = e.y;
+      var px = new SuperMap.Pixel(plx, ply);
+      var lonLat = map.getLonLatFromPixel(px);
+      openInfoWin(lonLat, currentFeature);
+   }
+
+   //调用 active 方法激活绘制多边形控件
+   function draw_polygon() {
+      drawPolygon.activate();
+   }
+
+   //退出绘制
+   function exit_polygon() {
+      drawPolygon.deactivate();
+   }
+
+
+   //点击可编辑按钮
+   function editBtn() {
+      if (editBool){
+         document.getElementById("editBtn").value='点击可编辑绘制区域信息';
+         editBool=false;
+         console.log(editBool);
+      } else{
+         document.getElementById("editBtn").value='点击停止编辑';
+         editBool=true;
+         console.log(editBool);
+      }
+
+
+   }
+   //编辑信息
+   function editMessage(event) {
+      if (editBool){
+         console.log(event);
+         var editMsg=prompt('请输入以改变弹出框内容');
+         //改变弹出框的信息
+         event.feature.attributes.obj.content=editMsg;
+
+         //改变testdata中的数据
+         for(var z = 0; z <testdata.length ; z++) {
+            // console.log(event.feature.attributes.obj.id);
+            if (event.feature.attributes.obj.id==testdata[z].id) {
+               testdata[z]["content"]=editMsg;
+            }
+
+         }
+         editBtn()
+      } 
+   }
+   //绘面完成后执行方法，取折点坐标
+   function drawPolygonCompleted(event) {
+      console.log(event);
+      var _feat = event.feature;
+      var _components = _feat.geometry.components[0].components;
+      var str = "";
+
+      //取消画图，激活矢量平台编辑
+      exit_polygon();
+
+      drawArr.push(_feat);
+      for(var k = 0; k < _components.length; k++) {
+         str += _components[k]["x"];
+         str += ",";
+         str += _components[k]["y"];
+         str += ";";
+      }
+      if(str.length > 0) {
+         str = str.substring(0, str.length - 1);
+         document.getElementById("polyLonlat").value = str;
+
+
+         //如果是重新绘制或者新绘制的改变testdata的数据
+         //   event.type=="featureadded"
+         //    event.type=="afterfeaturemodified"
+         if (event.type=="featureadded") {
+         //  说明是新绘制的
+            var confim=prompt("请输入绘制区域信息");
+            var _that={
+               "id": testdata.length+1,
+               "point": str,
+               "content": confim
+            };
+            testdata.push(_that)
+            //添加自定义属性
+            event.feature.attributes['id'] = _that.id;
+            event.feature.attributes['obj'] = _that;
+
+         }else if (event.type=="afterfeaturemodified") {
+         //   说明是在原有基础上更改的
+         //   其实在resize控件的时候已经帮我们改了里面的属性
+            for(var z = 0; z <testdata.length ; z++) {
+               // console.log(event.feature.attributes.obj.id);
+               if (event.feature.attributes.obj.id==testdata[z].id) {
+                  testdata[z]["point"]=str
+               }
+
+            }
+
+         }
+         // console.log(testdata);
+         //让他false才可以调用addPloygon里面数据
+         // ploygonAdded=false;
+         // addPloygon();
+      }
+   }
+
+   //清除绘制面
+   function clearFeatures() {
+      var arrLen = drawArr.length;
+      for (var p = 0; p < arrLen; p++) {
+         polygonLayer.removeFeatures(drawArr[p]);
+      }
+      drawArr.splice(0, arrLen);
+      exit_polygon();
+   }
+
+   //默认加载已有的面要素（就是addData）
+   function addPloygon() {
+      //添加数据进去然后渲染
+      if(!ploygonAdded) {
+         var style = {
+            //十六进制填充颜色，默认为”#ee9900”。
+            fillColor: "#e41a1c",
+            //填充不透明度。默认为0.4。
+            fillOpacity: 0.5,
+            //十六进制描边颜色。
+            strokeColor: "#CAAE5B",
+            //像素描边宽度，默认为1。
+            strokeWidth: 1
+         };
+
+         var polygon_features = [];
+         console.log(testdata);
+         for(var i = 0; i < testdata.length; i++) {
+            var _that = testdata[i];
+            var pointArr = _that.point.split(";");
+            var points = [];
+
+            for(var j = 0; j < pointArr.length; j++) {
+               var point = pointArr[j].split(",");
+               //几何图中各个点位置
+               var pointGeo = new SuperMap.Geometry.Point(point[0], point[1]);
+               points.push(pointGeo);
+            }
+
+            var linearRing = new SuperMap.Geometry.LinearRing(points);
+            var polygon = new SuperMap.Geometry.Polygon([linearRing]);
+            var polygon_feat = new SuperMap.Feature.Vector(polygon, null,style);
+
+            //添加point（用于右键点击）
+            // var newPoint= new SuperMap.Geometry.Point(0,0);
+            // pointVector = new SuperMap.Feature.Vector(newPoint);
+            // pointVector.style={
+            //    fillColor:"red",
+            //    strokeColor:"yellow",
+            //    pointRadius:10
+            // };
+
+
+            //添加自定义属性
+            polygon_feat.attributes['id'] = _that.id;
+            polygon_feat.attributes['obj'] = _that;
+            polygon_features.push(polygon_feat);
+
+         }
+
+         //它添加的就是一个数组
+         polygonLayer.addFeatures(polygon_features);
+         ploygonAdded = true;
+      } else {
+         alert("数据已加载。");
+      }
+
+      
+   }
+
+   //打开对应的信息框
+   function openInfoWin(lonLat, currentFeature) {
+      closeInfoWin();
+      var featAttr = currentFeature.attributes.obj;
+
+      var strHtml = "<div id='PopupWrapper'>";
+      strHtml += "<div id='PopupTitle'><div style='width: 32px; height: 30px; cursor: pointer;float:right;' onclick='closeInfoWin()'><img style='top: 9px; width: 16px; height: 16px; right: 12px; position: absolute; z-index: 10000; cursor: pointer;' src='http://webmap0.map.bdimg.com/image/api/iw_close.gif'/></div></div>";
+      strHtml += "<div id='PopupContent'><table>";
+      strHtml += "<tr>";
+      strHtml += "<td>" + featAttr.content + "</td>";
+      strHtml += "</tr>";
+      strHtml += "</table></div>";
+      strHtml += "</div>";
+      var size = new SuperMap.Size(44, 33),
+          offset = new SuperMap.Pixel(-40, -40),
+          icon = new SuperMap.Icon(null, size, offset);
+
+      var popup = new SuperMap.Popup.FramedCloud("popwin", lonLat, new SuperMap.Size(300, 250), strHtml, icon, false, null, true);
+      popup.setBorder("solid 2px #000000");
+      infowin = popup;
+      map.addPopup(popup);
+   }
+
+   //关闭信息框
+   function closeInfoWin() {
+      if(infowin) {
+         try {
+            infowin.hide();
+            infowin.destroy();
+         } catch(e) {}
+      }
+   }
+
+   window.onload = function() {
+      init();
+   };
+</script>
+</body>
+
+</html>

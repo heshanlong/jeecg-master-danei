@@ -1,0 +1,48 @@
+.calendar {
+    display: flex;
+}
+
+.calendar .el-input {
+    flex: 1;
+}
+
+.calendar span {
+    display: inline-block;
+    background-color: #eee;
+    border: 1px solid #ccc;
+    font-size: 14px;
+    padding: 6px 12px;
+    box-sizing: border-box;
+    color: #555;
+    text-align: center;
+    line-height: 1;
+    height: 30px;
+}
+
+.calendar span.split {
+    border-right: none;
+    line-height: 16px;
+ }
+
+.calendar span.beginIcon {
+    position: relative;
+    top: 0;
+    border-left: none;
+    border-right: none;
+}
+
+.calendar span.endIcon {
+    position: relative;
+    border-left: none;
+    top: 0;
+}
+
+.calendar .leftRadius .el-input__inner {
+    border-top-left-radius: 3px;
+    border-bottom-left-radius: 3px;
+}
+
+.calendar .rightRadius {
+    border-top-right-radius: 3px;
+    border-bottom-right-radius: 3px;
+}

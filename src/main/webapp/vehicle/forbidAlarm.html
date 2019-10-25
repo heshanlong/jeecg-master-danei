@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>禁停围栏报警</title>
+    <script src="./js/common.js"></script>
+    <script src="component/calendar.js"></script>
+</head>
+<body>
+<div id="constructAlarm" class="content">
+    <collapse :show="showSearch">
+        <el-row :gutter="30" class="top">
+            <el-col :xs="24" :sm="12" :md="8"><span>车牌号：</span><el-input v-model="params.licensePlate"></el-input></el-col>
+            <el-col :xs="24" :sm="12" :md="8">
+                <span>车辆类型：</span>
+                <el-select multiple collapse-tags v-model="vehicleType" clearable>
+                    <el-option-group v-for="group in vehicleTypeList" :key="group.id" :label="group.typeName">
+                        <el-option v-for="item in group.items" :key="item.id" :label="item.itemName" :value="item.id"></el-option>
+                    </el-option-group>
+                </el-select>
+            </el-col>
+            <el-col :xs="24" :sm="12" :md="8"><span>所属/申办单位：</span><el-input v-model="params.company"></el-input></el-col>
+            <el-col :xs="24" :sm="12" :md="8"><span>围栏名称：</span><el-input v-model="params.fenceName"></el-input></el-col>
+            <el-col :xs="24" :sm="12" :md="8">
+                <span>进入时间：</span>
+                <calendar type="datetime" :begin-time.sync="params.startTime" :end-time.sync="params.endTime"></calendar>
+            </el-col>
+            <el-col :xs="24" :sm="12" :md="8">
+                <p class="group">
+                    <button class="topBtn" @click="search"><i class="glyphicon glyphicon-search"></i> 查询</button>
+                    <button class="topBtn" @click="reset"><i class="glyphicon glyphicon-repeat"></i> 重置</button>
+                </p>
+            </el-col>
+        </el-row>
+    </collapse>
+    <div class="toolbar clearfix">
+        <p class="left">
+            <button @click="showSearch=!showSearch"><i class="glyphicon glyphicon-search"></i> 检索</button>
+        </p>
+        <control :header-list="headerList" ref="control" @refresh="getData" @change-style="tableStyle=!tableStyle" @change-header="changeHeader"></control>
+    </div>
+    <table-list ref="tableList" :data-source="dataSource" :loading="loading" :total="total"
+                :pages="pages" :header-list="headerList" :table-style="tableStyle" #operate="{data}">
+        {{ getStopTime(data) }}
+    </table-list>
+</div>
+</body>
+<script>
+  new Vue({
+    el: '#constructAlarm',
+    mixins: [mixin],
+    data: {
+      params: {
+        beginTime: getTodayTime(),
+        endTime: getTodayTime(true)
+      },
+      vehicleTypeList: [],
+      vehicleType: []
+    },
+    mounted () {
+      this.headerList = [
+        {label: '车牌号', prop: 'vehiclePlate', width: 85, show: true},
+        {label: '车辆类型', prop: 'itemName', width: 100, show: true },
+        {label: '所属/申办单位', prop: 'company', width: 160, show: true },
+        {label: '围栏名称', prop: 'fenceName', width: 140, show: true },
+        {label: '进入时间', prop: 'enterTime', width: 140, show: true },
+        {label: '离开时间', prop: 'leaveTime', width: 140, show: true },
+        {label: '停车时间', prop: '', width: 100, show: true, operate: true }
+      ]
+      getVehicleType().then( result => { this.vehicleTypeList = result })
+      this.getDataMethod = getNoParkAlarm
+      this.getData()
+    },
+    watch: {
+      vehicleType (value) {
+        this.params.vehicleCategory = value.join(',')
+      }
+    },
+    methods: {
+      search () {
+        if (this.params.endTime && this.params.beginTime > this.params.endTime) {
+          warning('开始日期不得大于结束日期')
+          return
+        }
+        this.getData()
+      },
+      getStopTime (data) {
+        let {enterTime, leaveTime} = data
+        let start = new Date(enterTime).getTime()
+        let end = new Date(leaveTime).getTime()
+        return transTime(end - start)
+      }
+    }
+  })
+</script>
+</html>

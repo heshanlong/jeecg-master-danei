@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no" />
+		<title></title>
+		<link rel="stylesheet" href="../css/bootstrap.min.css" />
+		<link rel="stylesheet" href="../css/my-map.css" />
+	</head>
+
+	<body>
+		<div class="outer row" id="vm" v-cloak>
+			<div class="outer-left col-sm-12">
+				<div class="left">
+					<div class="toolbar">
+						<div class="form-inline">
+							<div class="form-group input-group" v-if="!isHide">
+								<div class="input-group-btn">
+							        <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+							        	<span>施工日期</span>
+							        	<span class="caret"></span>
+							        </button>
+							        <ul class="dropdown-menu">
+							        	<li><a @click="setPickDate(0)">今天</a></li>
+							        	<li><a @click="setPickDate(1)">明天</a></li>
+							        </ul>
+								</div>
+								<input v-model="dateshow" type="text" class="form-control pick-date" id="date" placeholder="选择日期" readonly>
+							</div>
+							<div class="btn-group" role="group" aria-label="..." v-if="!isHideBut">
+								<button type="button" class="btn btn-default" onclick="draw_polygon()">绘制施工区域</button>
+								<button type="button" class="btn btn-default" onclick="clearFeatures()">清除绘制</button>
+							</div>
+							<div class="form-group" v-if="!isHideBut">
+								<label class="control-label">单击以开始绘制，双击以结束绘制</label>
+							</div>
+						</div>
+					</div>
+					<div class="map">
+						<div id="map" class="map-content"></div>
+					</div>
+				</div>
+			</div>
+			<div class="outer-right col-sm-3"  v-if="!isHide">
+				<div class="right">
+					<div class="toolbar">
+						<div class="input-group">
+							<span class="input-group-addon">搜索</span>
+							<input type="text" class="form-control" placeholder="回车搜索施工区域" aria-describedby="basic-addon" v-model="keyword" @keyup.enter="search" />
+						</div>
+					</div>
+					<div class="list">
+						<ul class="list-group">
+							<li class="list-group-item" v-for="(item, index) in list">
+								<label class="checkbox-inline">
+									<input type="checkbox" id="checkbox_0" v-model="item.show" @change="listPick(item, index)">
+									<div class="list-checkbox in3line">
+										<span>{{item.number}}.</span>
+										<span v-html="item.content"></span>
+									</div>
+								</label>
+							</li>
+						</ul>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<script type="text/javascript" src="../js/vue.min.js"></script>
+		<script type="text/javascript" src="../js/jquery.min.js"></script>
+		<script type="text/javascript" src="../js/bootstrap.min.js"></script>
+		<script type="text/javascript" src="../js/libs/SuperMap.Include.js"></script>
+		<script type="text/javascript" src="../laydate/laydate.js"></script>
+		<script type="text/javascript" src="../layer/layer.js"></script>
+		<script type="text/javascript" src="../js/xdate.js"></script>
+		<script type="text/javascript" src="../js/construction-area.js"></script>
+	</body>
+
+</html>

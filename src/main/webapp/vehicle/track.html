@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>轨迹回放</title>
+    <script src="./js/common.js"></script>
+    <script src="./component/calendar.js"></script>
+    <script src="./component/vehicleList.js"></script>
+    <script src="./js/mapTool.js"></script>
+    <script src="./js/screenshot.js"></script>
+    <style>
+        .content {padding: 0;}
+        .content .el-collapse {width: calc(100% - 30px); margin-left: 15px; margin-top: 15px;}
+        .content .toolbar {padding: 0 15px;}
+        .track { display: flex; flex-direction: column; height: 100%; }
+        .track .map { flex: 1; box-sizing: border-box; border-top: 1px solid lightgray !important; position: relative; }
+        .track .rect { position: absolute; right: 5px; top: 15px; z-index: 9999; }
+        .progress {display: flex; flex-direction: column; align-items: center; justify-content: center;}
+        .bar {width: calc(100% - 120px); height: 100px; box-sizing: border-box; border-bottom: 1px solid lightgray; position: relative;}
+        .bar:before {content: ''; display: block; width: 1px; height: 100%; background: lightgray; position: absolute; left: 0; bottom: 0;}
+        .bar:after {content: ''; display: block; width: 1px; height: 100%; background: lightgray; position: absolute; right: -1px; bottom: 0;}
+        .bar .time {position: absolute; bottom: -18px; pointer-events: none;}
+        .bar .startTime {left: -25px;}
+        .bar .endTime {right: -25px;}
+        .bar .mouseTime {position: absolute; display: none; color: #1E9FFF; z-index: 100;}
+        .bar:hover .mouseTime {display: inline;}
+        .bar .currentTime {position: absolute; top: -20px; left: -25px;}
+        .bar .pointer {display: inline; width: 1px; background-color: #1E9FFF; height: 100%; position: absolute; pointer-events: none; z-index: 100;}
+        .bar .section {position: absolute; height: 100%; background-color: rgba(40, 185, 255, 0.23); pointer-events: none;}
+        .playControl { border: 1px solid lightgray; margin-top: 10px; display: flex; align-items: center; }
+        .playControl button { border: none; border-radius: 0; top: 0; }
+        .playControl button.curr { background: #1E9FFF; color: white; }
+        .track .vehicleInfo > div {height: 25px; line-height: 25px;}
+        .track .vehicleInfo .bold {font-weight: bold;}
+        .track .vehicleInfo .inline {display: flex; justify-content: space-between;}
+    </style>
+</head>
+<body>
+<div id="track" class="track content">
+    <collapse :show="showSearch">
+        <el-row :gutter="30" class="top">
+            <el-col :xs="24" :sm="12" :md="8"><span>车牌号：</span><el-input v-model="params.licensePlate"></el-input></el-col>
+            <el-col :xs="24" :sm="12" :md="8">
+                <span>车辆类型：</span>
+                <el-select multiple collapse-tags v-model="vehicleType" clearable>
+                    <el-option-group v-for="group in vehicleTypeList" :key="group.id" :label="group.typeName">
+                        <el-option v-for="item in group.items" :key="item.id" :label="item.itemName" :value="item.id"></el-option>
+                    </el-option-group>
+                </el-select>
+            </el-col>
+            <el-col :xs="24" :sm="12" :md="8"><span>所属/申办单位：</span><el-input v-model="params.company"></el-input></el-col>
+            <el-col :xs="24" :sm="12" :md="8">
+                <span>查询时间：</span>
+                <calendar type="datetime" :begin-time.sync="pathParams.beginTime" :end-time.sync="pathParams.endTime"></calendar>
+            </el-col>
+            <el-col :xs="24" :sm="12" :md="8">
+                <p class="group">
+                    <button class="topBtn" @click="search"><i class="glyphicon glyphicon-search"></i> 查询</button>
+                    <button class="topBtn" @click="resetParams"><i class="glyphicon glyphicon-repeat"></i> 重置</button>
+                </p>
+            </el-col>
+        </el-row>
+    </collapse>
+    <div class="toolbar clearfix">
+        <p class="left">
+            <button class="other" @click="screenShot"><i class="glyphicon glyphicon-picture"></i> 截图</button>
+            <button class="remove" @click="clear"><i class="glyphicon glyphicon-clear"></i> 清除</button>
+            <button @click="showSearch=!showSearch"><i class="glyphicon glyphicon-search"></i> 检索</button>
+        </p>
+    </div>
+    <div class="map" id="map"><button class="normal rect" @click="drawRect">矩形</button></div>
+    <vehicle-list :data-source="dataSource" ref="vehicleList" @selected="selectedVehicles">
+        <el-tab-pane label="播放进度" class="progress" name="progress">
+            <div class="bar" ref="bar" @mousemove="mouseTimeChange" @click="selectTime">
+                <span class="time startTime">00:00:00</span>
+                <span class="time endTime">23:59:59</span>
+                <span class="mouseTime" ref="mouseTime" v-cloak>{{ mouseTime }}</span>
+                <span class="currentTime" ref="currentTime" v-cloak>{{ currentTime }}</span>
+                <span class="pointer" ref="pointer"></span>
+                <div class="section" ref="section"></div>
+            </div>
+            <div class="playControl">
+                <button @click="control(0)" class="glyphicon glyphicon-play"></button>
+                <button @click="control(1)" :class="{curr: speed===1}">x1</button>
+                <button @click="control(2)" :class="{curr: speed===2}">x2</button>
+                <button @click="control(3)" :class="{curr: speed===4}">x4</button>
+                <button @click="control(4)" :class="{curr: speed===8}">x8</button>
+                <button @click="control(5)" class="glyphicon glyphicon-pause"></button>
+                <button @click="control(6)" class="glyphicon glyphicon-stop"></button>
+            </div>
+        </el-tab-pane>
+    </vehicle-list>
+</div>
+</body>
+<script>
+    new Vue({
+      el: '#track',
+      mixins: [mixin],
+      data: {
+        map: '',
+        vectorLayer: '',
+        markerLayer: '',
+        pointLayer: '',
+        params: {},
+        pathParams: {
+          beginTime: getTodayTime(),
+          endTime: getTodayTime(true)
+        },
+        vehicleTypeList: [],
+        vehicleType: [],
+        selectVehicleList: [],
+        rect: '',
+        travelTrack: '',
+        mouseTime: '',
+        currentTime: '00:00:00',
+        previousTime: [],
+        interval: '',
+        speed: 1,
+        startSecond: 0,
+        endSecond: 0,
+        playState: 0 // 0 停止，1 播放，2 暂停
+      },
+      mounted () {
+        this.map = initMap('map')
+        this.vectorLayer = addVectorLayer(this.map, 5)
+        this.markerLayer = addMarkerLayer(this.map, 'trackPoint')
+        this.pointLayer = addMarkerLayer(this.map, 'vehiclePoint')
+        getVehicleType().then( result => { this.vehicleTypeList = result })
+        addEventListener('resize', () => {throttle(this.resize)})
+      },
+      watch: {
+        vehicleType (value) {
+          this.params.vehicleCategory = value.join(',')
+        }
+      },
+      methods: {
+        resize () {
+          let width = this.$refs.bar.offsetWidth
+          let second = getSecond(this.currentTime)
+          let left = second / 86399 * width
+          this.changePointer(left)
+          this.setSection()
+        },
+        drawRect () {
+          drawGeometry(this.map, this.vectorLayer).then(data => {
+            this.rect = data.feature
+            this.pathParams.pointArray = JSON.stringify(data.coordinates)
+          })
+        },
+        async search () {
+          let result = await getVehicles(this.params)
+          this.originalData = result.data
+          this.dataSource = [...this.originalData]
+          this.$refs.vehicleList.maximize()
+        },
+        resetParams () {
+          this.params = {}
+          this.pathParams = {
+            beginTime: getTodayTime(),
+            endTime: getTodayTime(true),
+            pointArray: []
+          }
+        },
+        clear () {
+          this.vectorLayer.removeAllFeatures()
+          this.markerLayer.clearMarkers()
+          this.stop()
+          this.setSection()
+        },
+        autoPlay () {
+          if (this.endSecond === 0) return
+          let second = this.playState ? getSecond(this.currentTime) : this.startSecond
+          clearInterval(this.interval)
+          this.playState = 1
+          this.interval = setInterval(() => {
+            second++
+            if (second > this.endSecond) {
+              clearInterval(this.interval)
+              return
+            }
+            let width = this.$refs.bar.offsetWidth
+            let left = second / 86399 * width
+            this.currentTime = getTime(second)
+            this.changePointer(left)
+            this.setVehiclePoint()
+          }, 3000 / this.speed)
+        },
+        setVehiclePoint () {
+            this.selectVehicleList.forEach((vehicle, index) => {
+              let pathArray = this.travelTrack[vehicle.licensePlate]
+              if (!pathArray.length) return
+              for (let i = pathArray.length - 1; i >= 0; i--) {
+                let path = pathArray[i]
+                let time = path.locationTime.substr(11)
+                if (time <= this.currentTime && this.previousTime[index] !== time) {
+                  console.log(111)
+                  this.previousTime[index] = time
+                  this.pointLayer.clearMarkers()
+                  this.map.removeAllPopup()
+                  let coordinate = {lon: path.longitude, lat: path.latitude}
+                  let content = getContentHTML(path)
+                  let marker = addVehicleIcon(this.pointLayer, coordinate, path.direction, () => {
+                    addInfoWin(this.map, marker, content)
+                  })
+                  addInfoWin(this.map, marker, content)
+                  let center = coordinateTransform(path.longitude, path.latitude, true)
+                  this.map.setCenter(getLonlat(center), this.map.getZoom())
+                  break
+                }
+              }
+            })
+        },
+        async selectedVehicles (data) {
+          if (!data.length) {
+            warning('请选择车辆')
+            return
+          }
+          if (data.length > 2) {
+            warning('最多选择两辆车')
+            return
+          }
+          let beginDate = this.pathParams.beginTime.substr(0, 10)
+          let endDate = this.pathParams.endTime.substr(0, 10)
+          if (beginDate !== endDate) {
+            warning('起止日期不能跨天')
+            return
+          }
+          this.selectVehicleList = data
+          this.pathParams.vehiclePlate = data.map(item => item.licensePlate).join(',')
+          let res = await getVehiclePath(this.pathParams)
+          if (!res) return
+          this.vectorLayer.removeFeatures([this.rect])
+          this.travelTrack = res.data
+          this.drawTrack()
+        },
+        drawTrack () {
+          let trackLength = 0
+          this.selectVehicleList.forEach(vehicle => {
+            let pathArray = this.travelTrack[vehicle.licensePlate]
+            if (!pathArray.length) return
+            trackLength++
+            addGeometry(this.map, this.vectorLayer, pathArray, true)
+            pathArray.forEach(path => {
+              Object.assign(path, vehicle)
+              let coordinate = {lon: path.longitude, lat: path.latitude}
+              let marker = addTrackPoint(this.markerLayer, coordinate, () => {
+                let content = getContentHTML(path)
+                addInfoWin(this.map, marker, content)
+              })
+            })
+          })
+          this.setMapCenter(trackLength)
+        },
+        setMapCenter (d) {
+          if (!d) return
+          this.$refs.vehicleList.changePane('progress')
+          let values = Object.values(this.travelTrack)
+          let centerPoint = values[0][0]
+          let center = coordinateTransform(centerPoint.longitude, centerPoint.latitude, true)
+          this.map.setCenter(getLonlat(center), this.map.getZoom())
+          this.$nextTick(() => {
+            let startTime, endTime
+            values.forEach(pathArray => {
+              let firstTime = pathArray[0].locationTime
+              let lastTime = pathArray[pathArray.length - 1].locationTime
+              if (!startTime || startTime > firstTime) startTime = firstTime
+              if (!endTime || endTime < lastTime) endTime = lastTime
+              this.setSection(startTime, endTime)
+            })
+          })
+        },
+        setSection (startTime, endTime) {
+          this.startSecond = startTime ? getSecond(startTime.substr(11)) : 0
+          this.endSecond = endTime ? getSecond(endTime.substr(11)) : 0
+          let diff = this.endSecond - this.startSecond
+          let barWidth = this.$refs.bar.offsetWidth
+          let sectionW = diff / 86399 * barWidth
+          let sectionL = this.startSecond / 86399 * barWidth
+          let section = this.$refs.section
+          section.style.left = sectionL + 'px'
+          section.style.width = sectionW + 'px'
+        },
+        screenShot () {
+          MapToImg.excute(this.map)
+        },
+        mouseTimeChange (e) {
+          let el = e.target
+          let width = el.offsetWidth
+          let second = e.layerX / parseInt(width) * 86399
+          let mouseTime = this.$refs.mouseTime
+          mouseTime.style.left = e.layerX + 12 + 'px'
+          mouseTime.style.top = e.layerY + 15 + 'px'
+          this.mouseTime = getTime(second)
+        },
+        selectTime (e) {
+          let currentSecond = getSecond(this.mouseTime)
+          if (currentSecond < this.startSecond || currentSecond > this.endSecond) return
+          this.changePointer(e.layerX)
+          this.currentTime = this.mouseTime
+          this.autoPlay()
+        },
+        changePointer (left) {
+          let pointer = this.$refs.pointer
+          pointer.style.left = left + 'px'
+          let currentTime = this.$refs.currentTime
+          currentTime.style.left = left - 25 + 'px'
+        },
+        control (code) {
+          if (code === 0) { // 播放
+            if (this.playState !== 1) this.autoPlay()
+          } else if (code === 5) { // 暂停
+            if (this.playState === 2) return
+            clearInterval(this.interval)
+            this.playState = 2
+          } else if (code === 6) { // 停止
+            if (this.playState !== 0) this.stop()
+          } else { // 倍速
+            let speed = [0, 1, 2, 4, 8][code]
+            if (this.speed === speed) return
+            this.speed = speed
+            if (this.playState === 1) this.autoPlay()
+          }
+        },
+        stop () {
+          clearInterval(this.interval)
+          this.changePointer(0)
+          this.currentTime = '00:00:00'
+          this.playState = 0
+          this.speed = 1
+          this.previousTime = []
+          this.map.removeAllPopup()
+          this.pointLayer.clearMarkers()
+        }
+      }
+    })
+</script>
+</html>

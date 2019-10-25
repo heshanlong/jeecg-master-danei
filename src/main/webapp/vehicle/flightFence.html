@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>飞行区围栏</title>
+    <script src="./js/common.js"></script>
+    <script src="./component/delConfirm.js"></script>
+    <script src="./js/mapTool.js"></script>
+    <style>
+        .flightFence { display: flex; height: 100%; }
+        .flightFence .map { flex: 1; border-right: 1px solid lightgray; }
+        .flightFence .fenceList { width: 300px; border-right: 1px solid lightgray; }
+        .flightFence .fenceList .tool { height: 50px; padding: 10px 0 0 10px; box-sizing: border-box }
+        .flightFence .fenceList .table { height: calc(100% - 51px); }
+        .flightFence .saveDialog .operate {margin-top: 15px;text-align: right;}
+        .flightFence .saveDialog .el-dialog {width: 250px;}
+        .flightFence .saveDialog .el-dialog__body {padding: 20px;}
+    </style>
+</head>
+<body>
+<div id="flightFence" class="flightFence">
+    <div class="map" id="map"></div>
+    <div class="fenceList">
+        <div class="tool">
+            <button class="normal" @click="draw(0)">矩形</button>
+            <button class="normal" @click="draw(1)">多边形</button>
+            <button class="remove" @click="layer.removeAllFeatures()">清除</button>
+        </div>
+        <div class="table">
+            <el-table :data="dataSource" height="100%" border>
+                <el-table-column align="center" type="index" label="序号"></el-table-column>
+                <el-table-column align="center" prop="flightName" label="围栏名称" show-overflow-tooltip></el-table-column>
+                <el-table-column align="center" label="操作" #default="{row}">
+                    <button @click="viewFence(row)" class="other mini">查看</button>
+                    <button @click="remove(row)" class="remove mini">删除</button>
+                </el-table-column>
+            </el-table>
+        </div>
+        <el-dialog title="保存围栏" :close-on-press-escape="false" :close-on-click-modal="false"
+                   class="saveDialog" :modal="false" :visible.sync="showSave" top="30vh">
+            <span>围栏名称：</span><el-input v-model="fenceName" v-focus></el-input>
+            <p class="operate">
+                <button class="sure" @click="saveFence">确定</button>
+                <button @click="cancelSave">取消</button>
+            </p>
+        </el-dialog>
+    </div>
+</div>
+</body>
+<script>
+    new Vue({
+      el: '#flightFence',
+      data: {
+        map: '',
+        layer: '',
+        feature: {},
+        showSave: false,
+        fenceName: '',
+        dataSource: [],
+        points: []
+      },
+      mounted () {
+        this.map = initMap('map')
+        this.layer = addVectorLayer(this.map)
+        this.getData()
+      },
+      methods: {
+        async getData () {
+          let res = await getFlightFences()
+          if (!res) {
+            warning('获取数据失败')
+            return
+          }
+          this.dataSource = res.data
+        },
+        draw (type) {
+          drawGeometry(this.map, this.layer, type).then(data => {
+            this.showSave = true
+            this.feature = data.feature
+            this.points = data.coordinates
+          })
+        },
+        async saveFence () {
+          let params = {
+            fenceName: this.fenceName,
+            graphType: 2,
+            pointsStr: JSON.stringify(this.points)
+          }
+          await insertFlightFences(params)
+          this.cancelSave()
+          this.getData()
+        },
+        cancelSave () {
+          this.layer.removeFeatures([this.feature])
+          this.showSave = false
+          this.areaName = ''
+        },
+        viewFence (row) {
+          if (!row.fence) return
+          addGeometry(this.map, this.layer, row.fence.pointArray)
+        },
+        remove (row) {
+          delConfirm().then(async () => {
+            let res = await deleteFlightFence({id: row.id})
+            if (res) {
+              success('飞行区围栏删除成功')
+              this.getData()
+            }
+          })
+        }
+      }
+    })
+</script>
+</html>

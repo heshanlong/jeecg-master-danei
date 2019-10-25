@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>车辆定位</title>
+    <script src="./js/common.js"></script>
+    <script src="./component/vehicleList.js"></script>
+    <script src="./js/mapTool.js"></script>
+    <style>
+        .location { height: 100%; display: flex; flex-direction: column; }
+        .location .top { padding: 10px; min-width: 940px; }
+        .location .top .el-input { width: 180px; }
+        .location .top p { margin: 0 0 0 10px; float: left; }
+        .location .map { flex: 1; box-sizing: border-box; border-top: 1px solid lightgray; }
+        .location .el-tabs__active-bar { display: none; }
+        .location #plateNo {width: 65px !important;height: 26px !important;}
+        .location .vehicleInfo > div {height: 25px; line-height: 25px;}
+        .location .vehicleInfo .bold {font-weight: bold;}
+        .location .vehicleInfo .inline {display: flex; justify-content: space-between;}
+    </style>
+</head>
+<body>
+<div id="location" class="location">
+    <div class="top">
+        <p><span>车牌号：</span><el-input v-model="params.licensePlate"></el-input></p>
+        <p>
+            <span>车辆类型：</span>
+            <el-select multiple collapse-tags v-model="vehicleType" clearable>
+                <el-option-group v-for="group in vehicleTypeList" :key="group.id" :label="group.typeName">
+                    <el-option v-for="item in group.items" :key="item.id" :label="item.itemName" :value="item.id"></el-option>
+                </el-option-group>
+            </el-select>
+        </p>
+        <p><span>所属/申办单位：</span><el-input v-model="params.company"></el-input></p>
+        <p>
+            <button class="normal" @click="search"><i class="glyphicon glyphicon-search"></i> 查询</button>
+            <button class="remove" @click="clear(1)"><i class="glyphicon glyphicon-clear"></i> 清除</button>
+        </p>
+    </div>
+    <div class="map" id="map"></div>
+    <vehicle-list ref="vehicleList" :data-source="dataSource" @selected="selectedVehicles"></vehicle-list>
+</div>
+</body>
+<script>
+    new Vue({
+      el: '#location',
+      data: {
+        map: '',
+        layer: '',
+        params: {},
+        vehicleTypeList: [],
+        vehicleType: [],
+        dataSource: [],
+        originalData: [],
+        selectVehicleList: [],
+        interval: '',
+        traceLicensePlate: ''
+      },
+      provide () {
+        return {
+          sortChange: this.sortChange
+        }
+      },
+      watch: {
+        vehicleType (value) {
+          this.params.vehicleCategory = value.join(',')
+        }
+      },
+      mounted () {
+        getVehicleType().then( result => { this.vehicleTypeList = result })
+        this.map = initMap('map')
+        this.layer = addMarkerLayer(this.map)
+      },
+      methods: {
+        async search () {
+          let result = await getVehicles(this.params)
+          this.originalData = result.data
+          this.dataSource = [...this.originalData]
+          this.$refs.vehicleList.maximize()
+        },
+        clear (b) {
+          b && clearInterval(this.interval)
+          this.layer.markers.forEach(marker => { marker.destroy })
+          this.layer.clearMarkers()
+          this.map.removeAllPopup()
+        },
+        sortChange ({prop, order}) {
+          if (!order) {
+            this.dataSource = [...this.originalData]
+            return
+          }
+          this.dataSource.sort((obj1, obj2) => {
+            return order === 'ascending' ? (obj1[prop] > obj2[prop] ? 1 : -1) : (obj1[prop] < obj2[prop] ? 1 : -1)
+          })
+        },
+        selectedVehicles (data) {
+          if (!data.length) {
+            warning('请选择车辆')
+            return
+          }
+          this.selectVehicleList = data
+          let vehiclePlate = data.map(vehicle => vehicle.licensePlate)
+          this.clear(1)
+          this.getLocation(vehiclePlate)
+          this.interval = setInterval(() => {this.getLocation(vehiclePlate)}, 5000)
+        },
+        async getLocation (vehiclePlate) {
+          let res = await getVehicleLocation({vehiclePlate})
+          if (!res) return
+          this.clear()
+          for (let i = 0; i < res.data.length; i++) {
+            let v = res.data[i]
+            let vehicle = this.selectVehicleList.find(item => item.licensePlate === v.vehiclePlate)
+            Object.assign(vehicle, v)
+            let coordinate = {lon: vehicle.longitude, lat: vehicle.latitude}
+            let content = getContentHTML(vehicle)
+            let marker = addVehicleIcon(this.layer, coordinate, vehicle.direction, () => {
+              this.traceLicensePlate = vehicle.licensePlate
+              addInfoWin(this.map, marker, content)
+            })
+            if (vehicle.licensePlate === this.traceLicensePlate || i === res.data.length - 1) {
+              addInfoWin(this.map, marker, content)
+              let center = coordinateTransform(vehicle.longitude, vehicle.latitude, true)
+              this.map.setCenter(getLonlat(center), this.map.getZoom())
+            }
+            addTextInfoWin(this.map, marker, v.vehiclePlate)
+          }
+        }
+      }
+    })
+</script>
+</html>

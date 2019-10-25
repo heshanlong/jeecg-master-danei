@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>道路使用统计</title>
+    <script src="./js/common.js"></script>
+    <script src="./component/calendar.js"></script>
+    <script src="./js/mapTool.js"></script>
+    <script src="./js/screenshot.js"></script>
+    <style>
+        .roadStatistics { height: 100%; display: flex; flex-direction: column; }
+        .roadStatistics .top { padding: 15px; }
+        .roadStatistics .top .calendar { display: inline-flex; width: 380px; }
+        .roadStatistics .top p { margin-top: 10px; }
+        .roadStatistics .map { flex: 1; box-sizing: border-box; border-top: 1px solid lightgray !important; position: relative; }
+        .roadStatistics .rect { position: absolute; right: 5px; top: 15px; z-index: 9999; }
+    </style>
+</head>
+<body>
+<div id="roadStatistics" class="roadStatistics">
+    <div class="top">
+        <p>
+            <span>开始时间：</span>
+            <calendar type="datetime" :begin-time="params.beginTime" :end-time="params.endTime"></calendar>
+            <button class="normal" @click="selectTime(1)">最近一天</button>
+            <button class="normal" @click="selectTime(3)">最近三天</button>
+            <button class="normal" @click="selectTime(7)">最近一周</button>
+        </p>
+        <p>
+            <button class="other" @click="screenShot"><i class="glyphicon glyphicon-picture"></i> 截图</button>
+            <button class="remove" @click="clear"><i class="glyphicon glyphicon-clear"></i> 清除</button>
+            <button class="normal" @click="search"><i class="glyphicon glyphicon-search"></i> 查询</button>
+        </p>
+    </div>
+    <div class="map" id="map"><button class="normal rect" @click="drawRect">矩形</button></div>
+</div>
+</body>
+<script>
+    new Vue({
+      el: '#roadStatistics',
+      data: {
+        map: '',
+        heatLayer: '',
+        vectorLayer: '',
+        params: {
+          beginTime: getTodayTime(),
+          endTime: getTodayTime(true),
+          pointArray: ''
+        }
+      },
+      mounted () {
+        this.map = initMap('map')
+        this.heatLayer = addHeatLayer(this.map)
+        this.vectorLayer = addVectorLayer(this.map)
+      },
+      methods: {
+        async search () {
+          let res = await getRoadStatistics(this.params)
+          if (!res) return
+          this.clear()
+          let points = res.data
+          addHotSpot(this.heatLayer, points)
+        },
+        selectTime (day) {
+          let date = new Date()
+          this.params.endTime = dateToString(date)
+          date.setDate(date.getDate() - day)
+          this.params.beginTime = dateToString(date)
+        },
+        drawRect () {
+          drawGeometry(this.map, this.vectorLayer).then(data => {
+            this.params.pointArray = JSON.stringify(data.coordinates)
+          })
+        },
+        clear () {
+          this.params.pointArray = ''
+          this.heatLayer.removeAllFeatures()
+          this.vectorLayer.removeAllFeatures()
+        },
+        screenShot () {
+          MapToImg.excute(this.map)
+        }
+      }
+    })
+</script>
+</html>

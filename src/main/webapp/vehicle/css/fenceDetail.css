@@ -1,0 +1,44 @@
+.fenceDetail {
+    width: 100%;
+    min-width: 400px;
+}
+
+.fenceDetail .block {
+    width: 215px;
+}
+
+.fenceDetail .mlBtn {
+    margin-left: 10px;
+}
+
+.fenceDetail .inline {
+    width: 90px;
+}
+
+.fenceDetail .split {
+    margin: 0 10px;
+}
+
+.fenceDetail p:last-of-type {
+    text-align: right;
+}
+
+.vehicleDialog .el-dialog {
+    width: 690px;
+}
+
+.vehicleDialog .el-dialog .el-dialog__body {
+    padding: 0;
+}
+
+.vehicleTypeDialog .el-dialog {
+    width: 400px;
+}
+
+.vehicleTypeDialog .el-dialog .el-dialog__body {
+    padding: 0;
+}
+
+
+
+

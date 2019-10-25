@@ -1,0 +1,43 @@
+.fenceManage {
+    min-width: 800px;
+    position: relative;
+}
+
+.fenceManage .tool {
+    padding: 8px 10px;
+}
+
+.fenceManage .tool .el-input{
+    width: 120px;
+}
+
+.fenceManage > div:first-of-type {
+    display: flex;
+    height: 500px;
+}
+
+.fenceManage .list {
+    width: 250px;
+}
+
+.fenceManage .map {
+    flex: 1;
+    height: 100%;
+}
+
+.fenceManage .saveDialog {
+    z-index: 4000;
+}
+
+.fenceManage .saveDialog .operate {
+    margin-top: 15px;
+    text-align: right;
+}
+
+.fenceManage .saveDialog .el-dialog {
+    width: 250px;
+}
+
+.fenceManage .saveDialog .el-dialog__body {
+    padding: 20px;
+}

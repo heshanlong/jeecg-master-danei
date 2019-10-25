@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>施工围栏</title>
+    <script src="./js/common.js"></script>
+    <script src="./component/fenceManage.js"></script>
+    <script src="./component/vehicleTypeSelect.js"></script>
+    <script src="./component/vehicleSelect.js"></script>
+    <style>
+        .vehicleDialog .el-dialog {width: 690px;}
+        .vehicleDialog .el-dialog .el-dialog__body {padding: 0;}
+        .vehicleTypeDialog .el-dialog {width: 400px;}
+        .vehicleTypeDialog .el-dialog .el-dialog__body {padding: 10px;}
+    </style>
+</head>
+<body>
+<div id="constructFence" class="content">
+    <collapse :show="showSearch">
+        <el-row :gutter="30" class="top">
+            <el-col :xs="24" :sm="12" :md="8"><span>围栏名称：</span><el-input v-model="params.name"></el-input></el-col>
+            <el-col :xs="24" :sm="12" :md="8">
+                <p class="group">
+                    <button class="topBtn" @click="getData(1)"><i class="glyphicon glyphicon-search"></i> 查询</button>
+                    <button class="topBtn" @click="reset"><i class="glyphicon glyphicon-repeat"></i> 重置</button>
+                </p>
+            </el-col>
+        </el-row>
+    </collapse>
+    <div class="toolbar clearfix">
+        <p class="left">
+            <button class="other" @click="viewFence"><i class="glyphicon glyphicon-search"></i> 查看</button>
+            <button @click="showSearch=!showSearch"><i class="glyphicon glyphicon-search"></i> 检索</button>
+        </p>
+        <control :header-list="headerList" ref="control" @refresh="getData" @change-style="tableStyle=!tableStyle" @change-header="changeHeader"></control>
+    </div>
+    <table-list ref="tableList" :data-source="dataSource" :loading="loading" :total="total"
+                :pages="pages" :table-style="tableStyle" :header-list="headerList" #operate="{data}">
+        <button class="other mini" @click="showSelect(data, 0)">车牌号</button>
+        <button class="other mini" @click="showSelect(data, 1)">车辆类型</button>
+    </table-list>
+    <el-dialog title="围栏管理" :visible.sync="showManage" class="fenceManageDialog">
+        <fence-manage ref="fenceManage" :fence-list="fenceList"></fence-manage>
+    </el-dialog>
+    <el-dialog title="车辆选择" :visible.sync="showVehicle" class="vehicleDialog" append-to-body @closed="$refs.vehicleSel.reset()">
+        <vehicle-select ref="vehicleSel" @select-finish="selectFinish($event, 0)" :sel-vehicles="selVehicles"></vehicle-select>
+    </el-dialog>
+    <el-dialog title="车辆类型选择" :visible.sync="showVehicleType" class="vehicleTypeDialog" append-to-body @closed="$refs.vehicleTypeSel.reset()">
+        <vehicle-type-select ref="vehicleTypeSel" @select-finish="selectFinish($event, 1)" :sel-vehicle-types="selVehicleTypes"></vehicle-type-select>
+    </el-dialog>
+</div>
+</body>
+<script>
+    new Vue({
+      el: '#constructFence',
+      mixins: [mixin],
+      data: {
+        params: {},
+        showManage: false,
+        showVehicle: false,
+        showVehicleType: false,
+        fenceDetail: {},
+        fenceList: [],
+        selVehicles: [],
+        selVehicleTypes: [],
+        vehicleList: []
+      },
+      mounted () {
+        this.getDataMethod = getConstructFenceList
+        this.headerList = [
+          {label: '围栏名称', prop: 'workName', width: 150, show: true},
+          {label: '开始时间', prop: 'workStartTime', width: 150, show: true},
+          {label: '结束时间', prop: 'workEndTime', width: 150, show: true},
+          {label: '围栏分配', prop: '', width: 180, show: true, operate: true}
+        ]
+        getVehicles().then(res => { this.vehicleList = res.data })
+        this.getData()
+      },
+      methods: {
+        showSelect (data, b) {
+          this.fenceDetail = {...data}
+          this.selVehicleTypes = []
+          this.fenceDetail.itemList.forEach(async id => {
+            let type = await getVehicleTypeById(id)
+            this.selVehicleTypes.push(type)
+          })
+          this.selVehicles = []
+          this.fenceDetail.platesList.forEach(plate => {
+            let vehicle = this.vehicleList.find(v => v.licensePlate === plate)
+            if (vehicle) this.selVehicles.push(vehicle)
+          })
+          if (b) this.showVehicleType = true
+          else this.showVehicle = true
+        },
+        async selectFinish (value, b) {
+          this[b ? 'showVehicleType' : 'showVehicle'] = false
+          let licensePlate = b ? this.fenceDetail.plateList : value.map(item => item.licensePlate)
+          let itemIdArray = b ? value.map(item => item.id) : this.fenceDetail.itemList
+          let params = {licensePlate, itemIdArray, contentId: this.fenceDetail.id}
+          await bindConstructFence(params)
+          this.getData()
+        },
+        viewFence () {
+          this.fenceList = this.dataSource.map(item => {
+            let mapPoints = item.mapPoints
+            let pointArray = []
+            if (mapPoints && mapPoints.length) {
+              let pointString = JSON.parse(mapPoints)[0].point
+              let points = pointString.split(';')
+              points.forEach(item => {
+                let arr = item.split(',')
+                pointArray.push({longitude: arr[0], latitude: arr[1]})
+              })
+            }
+            return {
+              ...item,
+              projectName: item.workName,
+              pointArray
+            }
+          })
+          this.$nextTick(() => { this.$refs.fenceManage.clear() })
+          this.showManage = true
+        }
+      }
+    })
+</script>
+</html>

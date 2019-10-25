@@ -1,0 +1,67 @@
+.vehicleList {
+    position: relative;
+}
+
+.vehicleList .close {
+    position: absolute;
+    z-index: 999;
+    right: 10px;
+    top: 5px;
+}
+
+.vehicleList .close {
+    border: none;
+    color: white;
+    font-size: 14px;
+}
+
+.vehicleList .close:hover {
+    background-color: transparent;
+    color: red;
+}
+
+.vehicleList .el-tabs {
+    height: 100%;
+}
+
+.vehicleList .el-tabs__active-bar {
+    background-color: white;
+}
+
+.vehicleList .el-tabs__header {
+    margin-bottom: 0;
+    padding-left: 10px;
+    background: linear-gradient(to right, #2272CE, #38B1FF);
+}
+
+.vehicleList .el-tabs__nav-wrap:after {
+    display: none;
+}
+
+.vehicleList .el-tabs__content {
+    height: calc(100% - 40px);
+}
+
+.vehicleList .el-tab-pane {
+    height: 100%;
+}
+
+.vehicleList .el-tabs__item {
+    color: white;
+}
+
+.vehicleList .tableList {
+    height: calc(100% - 40px);
+}
+
+.vehicleList .tableList .table {
+    height: 100%;
+}
+
+.vehicleList .el-tab-pane > p {
+    text-align: right;
+    margin-top: 5px;
+    padding-right: 10px;
+}
+
+

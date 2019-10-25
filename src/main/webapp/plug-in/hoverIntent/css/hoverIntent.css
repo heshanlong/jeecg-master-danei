@@ -1,0 +1,6 @@
+/* 公用飘窗板 */
+.features{position: relative;}
+.features-pop{display:none;height:auto;padding:0 10px 5px 10px;background:#fff;word-break:break-all;white-space:normal;border:1px solid #d9d9d9; border-radius:5px; position:absolute;left:0;z-index: 9;box-shadow: 0 0 2px rgba(0, 0, 0, 0.2);}
+.features-pop.up{bottom:26px;}
+.features-pop .allow-up-icon{display:block;width:14px;height:7px;background:url(../img/icon-arrow.png) no-repeat; position:relative;top:-7px;}
+.features-pop .allow-down-icon{display:block;width:14px;height:7px;background:url(../img/gray-allow-down.png) no-repeat; position:absolute;bottom: -7px;}

@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>驾驶员信息</title>
+    <script src="./js/common.js"></script>
+    <script src="component/calendar.js"></script>
+</head>
+<body>
+    <div id="driverInfo" class="content">
+        <collapse :show="showSearch">
+            <el-row :gutter="30" class="top">
+                <el-col :xs="24" :sm="12" :md="8"><span>姓名：</span><el-input v-model="params.driverName"></el-input></el-col>
+                <el-col :xs="24" :sm="12" :md="8"><span>所属单位：</span><el-input v-model="params.company"></el-input></el-col>
+                <el-col :xs="24" :sm="12" :md="8"><span>申请单位：</span><el-input v-model="params.applyCompany"></el-input></el-col>
+                <el-col :xs="24" :sm="12" :md="8"><span>通行证号码：</span><el-input v-model="params.pass"></el-input></el-col>
+                <el-col :xs="24" :sm="12" :md="8"><span>场内准驾车型：</span><el-input v-model="params.insideQualification"></el-input></el-col>
+                <el-col :xs="24" :sm="12" :md="8">
+                    <span>有效日期：</span>
+                    <calendar :begin-time.sync="params.beginTime" :end-time.sync="params.endTime"></calendar>
+                </el-col>
+                <el-col :xs="24" :sm="12" :md="8">
+                    <p class="group">
+                        <button class="topBtn" @click="search"><i class="glyphicon glyphicon-search"></i> 查询</button>
+                        <button class="topBtn" @click="reset"><i class="glyphicon glyphicon-repeat"></i> 重置</button>
+                    </p>
+                </el-col>
+            </el-row>
+        </collapse>
+        <div class="toolbar clearfix">
+            <p class="left">
+                <button @click="showImportDialog=true" class="other"><i class="glyphicon glyphicon-cloud-upload"></i> 导入</button>
+                <button @click="showSearch=!showSearch"><i class="glyphicon glyphicon-search"></i> 检索</button>
+            </p>
+            <control :header-list="headerList" ref="control" @refresh="getData" @change-style="tableStyle=!tableStyle" @change-header="changeHeader"></control>
+        </div>
+        <table-list ref="tableList" :data-source="dataSource" :loading="loading" :total="total"
+                    :pages="pages" :header-list="headerList" :table-style="tableStyle">
+        </table-list>
+        <el-dialog :modal="false" class="importDialog" title="导入驾驶员" :visible.sync="showImportDialog" top="15vh">
+            <el-upload :action="importDriverUrl" :on-success="importSuccess" :on-error="importFailed">
+                <button class="search">选择文件</button>
+                <div slot="tip" class="el-upload__tip">只能上传excel文件</div>
+            </el-upload>
+            <footer slot="footer"></footer>
+        </el-dialog>
+    </div>
+</body>
+<script>
+    new Vue({
+      el: '#driverInfo',
+      mixins: [mixin],
+      data: {
+        params: {},
+        showImportDialog: false,
+        importDriverUrl: UPLOAD_DRIVER
+      },
+      mounted () {
+        this.headerList = [
+          {label: '姓名', prop: 'driverName', width: 70, show: true},
+          {label: '性别', prop: 'sex', width: 60, func: b => ['女', '男'][b] ,show: true },
+          {label: '出生日期', prop: 'birthDay', width: 100, show: true },
+          {label: '所属单位', prop: 'company', width: 160, show: true },
+          {label: '申请单位', prop: 'applyCompany', width: 160, show: true },
+          {label: '通行证号码', prop: 'pass', width: 110, show: true },
+          {label: '地方准驾车型', prop: 'localQualification', width: 110, show: true },
+          {label: '场内准驾车型', prop: 'insideQualification', width: 110, show: true },
+          {label: '场内驾驶证初次领证日期', prop: 'receiveTime', width: 105, show: true },
+          {label: '场内驾驶证有效开始日期', prop: 'beginTime', width: 105, show: true },
+          {label: '场内驾驶证有效结束日期', prop: 'endTime', width: 105, show: true },
+        ]
+        this.getDataMethod = getDriverList
+        this.getData()
+      },
+      methods: {
+        search () {
+          if (this.params.endTime && this.params.beginTime > this.params.endTime) {
+            warning('开始日期不得大于结束日期')
+            return
+          }
+          this.getData()
+        },
+        importSuccess () {
+          success('导入成功')
+          this.showImportDialog = false
+          this.getData()
+        },
+        importFailed () {
+          warning('导入失败')
+        }
+      }
+    })
+</script>
+</html>

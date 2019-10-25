@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <script src="./js/common.js"></script>
+    <script src="./component/delConfirm.js"></script>
+    <title>Title</title>
+    <style>
+        .top { height: 28px; }
+        .table { height: calc(100% - 58px); }
+        .violationDialog .el-dialog { width: 330px; }
+        .violationDialog .el-dialog__body { padding: 10px 15px; }
+        .violationDialog .el-form .el-input { width: 180px; }
+        .violationDialog p { text-align: right; margin-top: 25px; }
+    </style>
+</head>
+<body>
+    <div id="violationType" class="content">
+        <div class="toolbar clearfix">
+            <p class="left">
+                <button class="add" @click="add(1)"><i class="glyphicon glyphicon-plus"></i> 录入</button>
+                <button class="edit" @click="add(0)" :disabled="selectedItems.length !== 1"><i class="glyphicon glyphicon-edit"></i> 编辑</button>
+                <button class="remove" @click="showConfirm=true" :disabled="selectedItems.length < 1"><i class="glyphicon glyphicon-remove"></i> 批量删除</button>
+            </p>
+            <control :header-list="headerList" ref="control" @refresh="getData" @change-style="tableStyle=!tableStyle" @change-header="changeHeader"></control>
+        </div>
+        <table-list @selected-change="selectedItems=$event" ref="tableList" :data-source="dataSource" :loading="loading"
+                    :total="total" :pages="pages" :table-style="tableStyle" :header-list="headerList" :show-select="true">
+            <template #operate="{data}">
+                <button @click.stop="remove(data)" class="remove mini">删除</button>
+            </template>
+        </table-list>
+        <el-dialog :close-on-click-modal="false" class="violationDialog" :visible.sync="showAddViolationDialog" top="30vh" title="违规类型">
+            <el-form :model="violation" :rules="violationRule" ref="violationForm" label-width="100px">
+                <el-form-item label="违规类型：" prop="typeName"><el-input v-model.trim="violation.typeName"></el-input></el-form-item>
+                <el-form-item label="违规代码：" prop="code"><el-input v-model.trim="violation.code"></el-input></el-form-item>
+            </el-form>
+            <p>
+                <button class="sure" @click="addViolation">确定</button>
+                <button @click="showAddViolationDialog=false">关闭</button>
+            </p>
+            <footer slot="footer"></footer>
+        </el-dialog>
+        <del-confirm :show.sync="showConfirm" @remove="batchRemove"></del-confirm>
+    </div>
+</body>
+<script>
+    new Vue({
+      el: '#violationType',
+      mixins: [mixin],
+      data: {
+        selectedItems: [],
+        showAddViolationDialog: false,
+        isEdit: false,
+        showConfirm: false,
+        violationRule: {
+          typeName: { required: true, message: '请输入违规类型', trigger: 'blur' },
+          code: { required: true, message: '请输入违规代码', trigger: 'blur' }
+        },
+        violation: {}
+      },
+      mounted () {
+        this.getDataMethod = getViolationTypeList
+        this.headerList = [
+          {label: '违规类型', prop: 'typeName', width: 85, show: true},
+          {label: '违规代码', prop: 'code', width: 100, show: true },
+          {label: '操作', prop: '', width: 80, show: true, operate: true}
+        ]
+        this.getData()
+      },
+      methods: {
+        add (b) {
+          this.isEdit = !b
+          this.showAddViolationDialog = true
+          this.violation = this.isEdit ? { ...this.dataSource[this.selectedItems[0]] } : {}
+          this.$nextTick(() => {
+            this.$refs.violationForm.clearValidate()
+          })
+        },
+        addViolation () {
+          this.$refs.violationForm.validate(async valid => {
+            if (!valid) return
+            let res, msg
+            if (this.isEdit) {
+              res = await updateViolationType(this.violation)
+              msg = '违规类型表更新成功'
+            } else {
+              res = await insertViolationType(this.violation)
+              msg = '违规类型表添加成功'
+            }
+            if (res) {
+              this.showAddViolationDialog = false
+              success(msg)
+              this.getData()
+            }
+          })
+        },
+        async batchRemove () {
+          let selectedIds = this.selectedItems.map(index => this.dataSource[index].id)
+          let res = await batchDeleteViolationType({idArray: selectedIds})
+          if (res) {
+            success('违规类型表删除成功')
+            this.getData()
+          }
+        },
+        remove (row) {
+          delConfirm().then(async () => {
+            let res = await deleteViolationType({id: row.id})
+            if (res) {
+              success('违规类型表删除成功')
+              this.getData()
+            }
+          })
+        }
+      }
+    })
+</script>
+</html>

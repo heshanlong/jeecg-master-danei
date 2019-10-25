@@ -1,0 +1,431 @@
+* {
+    font-size: 12px;
+    font-family: Tahoma,Verdana,微软雅黑,新宋体, Helvetica, Arial, sans-serif;
+    touch-action: none;
+}
+
+*:not(i) {
+    color: #333
+}
+
+html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    min-width: 720px;
+}
+
+body {
+    padding-top: 10px;
+    box-sizing: border-box;
+}
+
+[v-cloak] {
+    display: none;
+}
+
+.clearfix {
+    zoom: 1;
+}
+
+.clearfix:after {
+     content: '';
+     clear: both;
+     display: block;
+     overflow: hidden;
+     height: 0;
+ }
+
+div.map.smMap {
+    border: none;
+}
+
+/********** font icon *************/
+@font-face {
+    font-family: 'Glyphicons Halflings';
+    src: url('./fonts/glyphicons-halflings-regular.eot');
+    src: url('./fonts/glyphicons-halflings-regular.eot?#iefix') format('embedded-opentype'), url('./fonts/glyphicons-halflings-regular.woff') format('woff'), url('./fonts/glyphicons-halflings-regular.ttf') format('truetype'), url('./fonts/glyphicons-halflings-regular.svg#glyphicons_halflingsregular') format('svg');
+}
+
+.glyphicon {
+    position: relative;
+    top: 1px;
+    display: inline-block;
+    font-family: 'Glyphicons Halflings';
+    -webkit-font-smoothing: antialiased;
+    font-style: normal;
+    font-weight: normal;
+    line-height: 1;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+.glyphicon-repeat:before { content: "\e030"; }
+.glyphicon-search:before { content: "\e003"; }
+.glyphicon-refresh:before { content: "\e031"; }
+.glyphicon-list-alt:before { content: "\e032"; }
+.glyphicon-th:before { content: "\e011"; }
+.glyphicon-calendar:before { content: '\e109'; }
+.glyphicon-plus:before { content: '\2b'; }
+.glyphicon-calendar:before { content: '\e109'; }
+.glyphicon-cloud-download:before { content: '\e197'; }
+.glyphicon-cloud-upload:before { content: '\e198'; }
+.glyphicon-ok:before { content: '\e013'; }
+.glyphicon-remove:before { content: '\e014'; }
+.glyphicon-edit:before { content: '\270f'; }
+.glyphicon-clear:before { content: '\e020'; }
+.glyphicon-picture:before { content: '\e060'; }
+.glyphicon-play:before { content: '\e072'; }
+.glyphicon-pause:before { content: '\e073'; }
+.glyphicon-stop:before { content: '\e074'; }
+
+/************ input ***************/
+.el-input__inner {
+    border: 1px solid #ccc;
+    border-radius: 0;
+    height: 30px;
+    line-height: 30px;
+    box-sizing: border-box;
+    font-size: 12px;
+    box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
+    padding: 5px 10px;
+}
+
+.el-textarea__inner {
+    border-radius: 0;
+}
+/******** select ********/
+
+.el-input__icon {
+    line-height: 30px;
+    height: 30px;
+}
+
+.el-select-dropdown.el-popper {
+    margin-top: 2px;
+    border-color: #409EFF;
+    border-radius: 0;
+}
+
+.el-select-dropdown .popper__arrow {
+    display: none;
+}
+
+.el-select-group__wrap:not(:last-of-type) {
+    padding-bottom: 0;
+}
+
+.el-select-group__title {
+    height: 22px;
+    line-height: 22px;
+}
+
+.el-select-group__wrap:not(:last-of-type):after {
+    display: none;
+}
+
+.el-select-dropdown__item {
+    height: 20px;
+    line-height: 20px;
+    padding-left: 25px;
+}
+
+.el-select-dropdown__item.selected.hover,
+.el-select-dropdown__item:hover {
+    background-color: rgb(34, 114, 206) !important;
+    color: white !important;
+}
+
+.el-select-dropdown__item.selected.hover span,
+.el-select-dropdown__item:hover span {
+    color: white;
+}
+
+
+
+/********** form ***********/
+.el-form-item {
+    margin-bottom: 10px;
+}
+
+.el-form-item .el-form-item__label {
+    font-size: 12px;
+    font-weight: bold;
+    color: #333;
+}
+
+.el-form-item__error {
+    padding-top: 0;
+}
+
+/********** collapse **********/
+.el-collapse {
+    border: none;
+}
+
+.el-collapse .el-collapse-item__content {
+    padding: 0;;
+}
+
+.el-collapse .el-collapse-item__wrap {
+    border: none;
+}
+
+.el-collapse .el-collapse-item__header {
+    display: none;
+}
+
+/*********** button ************/
+button {
+    height: 30px;
+    padding: 5px 10px;
+    color: #333;
+    background-color: transparent;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    outline: none;
+    cursor: pointer;
+}
+
+button.mini {
+    height: 22px;
+    padding: 1px 5px;
+}
+
+button:disabled {
+    cursor: not-allowed;
+}
+
+button:hover {
+    background-color: #e6e6e6;
+}
+
+button.topBtn {
+    color: #3ca2e0;
+    border: 2px solid #3ca2e0;
+    border-radius: 30px;
+    background-color: transparent;
+}
+
+button.topBtn:hover {
+    color: white;
+    background-color: #3ca2e0;
+}
+
+button.sure {
+    background: linear-gradient(to right, #2272CE, #38B1FF);
+    color: white;
+    padding: 5px 14px;
+}
+
+button.edit {
+    background-color: #5cb85c;
+    border-color: #4cae4c;
+    color: white;
+}
+
+button.edit:disabled {
+    background-color: #95d095;
+    border-color: #95d095;
+}
+
+button.edit:not(:disabled):hover {
+
+}
+
+button.remove {
+    background-color: #d9534f;
+    border-color: #d43f3a;
+    color: white;
+}
+
+button.remove:disabled {
+    background-color: #e68f8c;
+    border-color: #e68f8c;
+}
+
+button.remove:not(:disabled):hover {
+    background-color: #c9302c;
+}
+
+button.other {
+    color: white;
+    background-color: #5bc0de;
+    border-color: #46b8da;
+}
+
+button.other:hover {
+    background-color: rgb(49, 175, 212);
+}
+
+button.normal {
+    color: white;
+    background-color: #35A0E8;
+    border-color: #35A0E8;
+}
+
+button.normal:hover {
+    background-color: rgb(63, 154, 216);
+}
+
+button.add {
+    background-color: #337ab7;
+    border-color: #2e6da4;
+    color: white;
+}
+
+button.add:hover {
+    background-color: rgb(40, 96, 144);
+}
+
+/************* table **************/
+.el-table td, .el-table th {
+    padding: 5px 0;
+}
+
+.el-table th:not(.is-center)>.cell {
+    padding-right: 17px;
+}
+
+.el-table .caret-wrapper {
+    position: absolute;
+    right: 2px;
+    top: 50%;
+    margin-top: -17px;
+    width: 15px;
+}
+
+.el-table .sort-caret {
+    left: 3px;
+}
+
+.el-table .ascending .sort-caret.ascending {
+    border-bottom-color: #7a80dd;
+}
+
+.el-table .descending .sort-caret.descending {
+    border-top-color: #7a80dd;
+}
+
+tr.el-table__row td {
+    background-color: #f9f9f9 !important;
+}
+
+tr.el-table__row:hover td {
+    background-color: #f5f5f5 !important;
+}
+
+tr.el-table__row--striped td {
+    background-color: #fff !important;
+}
+
+.el-table .el-table__empty-block {
+    display: block;
+}
+
+.el-table .el-table__empty-text {
+    display: block;
+    width: 100%;
+    height: 35px;
+    line-height: 35px;
+    background-color: #f9f9f9;
+    border-bottom: 1px solid #EBEEF5;
+}
+
+/************** dialog **************/
+.el-dialog__header {
+    background: linear-gradient(to right, #2272CE, #38B1FF);
+    padding: 8px 20px;
+}
+
+.el-dialog__title {
+    color: white;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.el-dialog__headerbtn {
+    top: 5px;
+}
+
+.el-dialog__headerbtn:hover {
+    background-color: transparent;
+}
+
+.el-dialog__headerbtn .el-dialog__close {
+    color: white;
+    font-size: 16px;
+}
+
+.el-dialog__headerbtn .el-dialog__close:hover {
+    color: red;
+}
+
+.el-dialog__footer {
+    background: linear-gradient(to right, #2272CE, #38B1FF);
+    padding: 16px 0 0;
+}
+
+.importDialog .el-dialog {
+    width: 450px;
+}
+
+.fenceDetailDialog .el-dialog {
+    width: 440px;
+}
+
+.fenceDetailDialog .el-dialog .el-dialog__body {
+    padding: 20px;
+}
+
+.fenceManageDialog .el-dialog {
+    width: 800px;
+}
+
+.fenceManageDialog .el-dialog .el-dialog__body {
+    padding: 0;
+}
+
+/*********** content ************/
+.content {
+    width: 100%;
+    padding: 15px 15px 0;
+    box-sizing: border-box;
+}
+
+.content .top {
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    transition: max-height 0.5s;
+}
+
+.content .top.hidden {
+    max-height: 0;
+    overflow: hidden;
+    padding: 0 !important;
+}
+
+.content .top .el-select {
+    width: 100%;
+}
+
+.content .top .group {
+    margin-top: 20px;
+    margin-bottom: 0;
+}
+
+.content .top .el-col > span {
+    display: inline-block;
+    margin-bottom: 5px;
+    font-weight: 700;
+}
+
+.content .toolbar {
+    margin: 10px 0;
+}
+
+.content .toolbar .left {
+    float: left;
+}

@@ -1,0 +1,53 @@
+.select {
+    width: 100%;
+    min-width: 300px;
+    height: 450px;
+}
+
+.select .el-tabs {
+    height: calc(100% - 50px);
+}
+
+.select .el-tabs__header {
+    margin-bottom: 10px;
+}
+
+.select .el-tabs__nav-wrap {
+    padding-left: 10px;
+}
+
+.select .el-tabs__content {
+    height: calc(100% - 50px);
+    padding: 0 10px;
+}
+
+.select .el-tab-pane {
+    height: 100%;
+}
+
+.select .tableList {
+    margin-top: 10px;
+    height: calc(100% - 45px);
+}
+
+.select .tableList .table{
+    height: calc(100% - 37px);
+}
+
+.select .top .el-input {
+    width: 100px;
+}
+
+.select .top button {
+    margin-left: 10px;
+}
+
+.select .top > span {
+    margin-right: 10px;
+}
+
+.select .btn {
+    text-align: right;
+    margin-top: 10px;
+    padding-right: 10px;
+}

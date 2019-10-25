@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>禁停围栏</title>
+    <script src="./js/common.js"></script>
+    <script src="./component/delConfirm.js"></script>
+    <script src="./component/fenceDetail.js"></script>
+    <script src="./component/fenceManage.js"></script>
+</head>
+<body>
+<div id="forbidFence" class="content">
+    <collapse :show="showSearch">
+        <el-row :gutter="30" class="top">
+            <el-col :xs="24" :sm="12" :md="8"><span>围栏名称：</span><el-input v-model="params.name"></el-input></el-col>
+            <el-col :xs="24" :sm="12" :md="8">
+                <p class="group">
+                    <button class="topBtn" @click="getData(1)"><i class="glyphicon glyphicon-search"></i> 查询</button>
+                    <button class="topBtn" @click="reset"><i class="glyphicon glyphicon-repeat"></i> 重置</button>
+                </p>
+            </el-col>
+        </el-row>
+    </collapse>
+    <div class="toolbar clearfix">
+        <p class="left">
+            <button class="add" @click="add(1)"><i class="glyphicon glyphicon-plus"></i> 录入</button>
+            <button class="edit" @click="add(0)" :disabled="selectedItems.length !== 1"><i class="glyphicon glyphicon-edit"></i> 编辑</button>
+            <button class="remove" @click="showConfirm=true" :disabled="selectedItems.length < 1"><i class="glyphicon glyphicon-remove"></i> 批量删除</button>
+            <button class="other" @click="manage(0)"><i class="glyphicon glyphicon-search"></i> 查看</button>
+            <button @click="showSearch=!showSearch"><i class="glyphicon glyphicon-search"></i> 检索</button>
+        </p>
+        <control :header-list="headerList" ref="control" @refresh="getData" @change-style="tableStyle=!tableStyle" @change-header="changeHeader"></control>
+    </div>
+    <table-list  @selected-change="selectedItems=$event" ref="tableList" :data-source="dataSource" :loading="loading"
+                 :total="total" :pages="pages" :table-style="tableStyle" :show-select="true" :header-list="headerList">
+        <template #operate4="{data}">
+            {{ getTimeRange(data) }}
+        </template>
+        <template #operate="{data}">
+            <button @click.stop="remove(data)" class="remove mini">删除</button>
+        </template>
+    </table-list>
+    <del-confirm :show.sync="showConfirm" @remove="batchRemove"></del-confirm>
+    <el-dialog title="跨域围栏" :visible.sync="showFenceDetail" class="fenceDetailDialog">
+        <fence-detail ref="fenceDetail" :fence-detail="fenceDetail" @manage="manage(1)" @save="saveFence">
+            <el-form-item label="开启状态：" prop="openState">
+                <el-select class="inline" v-model="fenceDetail.openState">
+                    <el-option label="开启" :value="1"></el-option>
+                    <el-option label="关闭" :value="0"></el-option>
+                </el-select>
+            </el-form-item>
+            <br/>
+        </fence-detail>
+    </el-dialog>
+    <el-dialog :title="manageTitle" :visible.sync="showManage" class="fenceManageDialog" :close-on-click-modal="false">
+        <fence-manage ref="fenceManage" :type="manageType" :fence-list="dataSource" @select-fence="selectFence" @fence-update="fenceUpdate"></fence-manage>
+    </el-dialog>
+</div>
+</body>
+<script>
+  new Vue({
+    el: '#forbidFence',
+    mixins: [mixin],
+    data: {
+      params: {},
+      selectedItems: [],
+      showConfirm: false,
+      showFenceDetail: false,
+      fenceDetail: {},
+      showManage: false,
+      manageType: 1,
+      manageTitle: '围栏管理',
+      isEdit: false
+    },
+    mounted () {
+      this.getDataMethod = getNostopFenceList
+      this.headerList = [
+        {label: '围栏名称', prop: 'projectName', width: 150, show: true},
+        {label: '开启状态', prop: 'openState', width: 80, show: true},
+        {label: '开始日期', prop: 'beginTime', width: 100, show: true},
+        {label: '结束日期', prop: 'endTime', width: 100, show: true},
+        {label: '时间范围', prop: '', width: 150, show: true, operate: true},
+        {label: '操作', prop: '', width: 80, show: true, operate: true}
+      ]
+      this.getData()
+    },
+    methods: {
+      add(b) {
+        this.isEdit = !b
+        if (b) this.fenceDetail = {fenceId: '', beginTime: '', endTime: '', beginRange: '', endRange: ''}
+        else {
+          let fenceDetail = this.dataSource[this.selectedItems[0]]
+          this.fenceDetail = {...fenceDetail}
+        }
+        this.$nextTick(() => {
+          this.$refs.fenceDetail.clearValidate()
+        })
+        this.showFenceDetail = true
+      },
+      async batchRemove() {
+        let selectedIds = this.selectedItems.map(index => this.dataSource[index].id)
+        let res = await batchDeleteNostopFence({idArray: selectedIds})
+        if (res) {
+          success('禁停围栏表删除成功')
+          this.getData()
+        }
+      },
+      remove(row) {
+        delConfirm().then(async () => {
+          let res = await deleteNostopFence({id: row.id})
+          if (res) {
+            success('禁停围栏删除成功')
+            this.getData()
+          }
+        })
+      },
+      getTimeRange(data) {
+        let range = [data.beginRange, data.endRange]
+        return range.join('-')
+      },
+      manage(b) {
+        this.manageType = b
+        this.showManage = true
+        this.$nextTick(() => {this.$refs.fenceManage.clear()})
+        this.manageTitle = b ? '区域管理' : '围栏管理'
+      },
+      fenceUpdate(data) {
+        this.$refs.fenceDetail.fenceList = data
+        if (!data.find(item => item.id === this.fenceDetail.fenceId)) this.fenceDetail.fenceId = ''
+      },
+      selectFence(id) {
+        this.fenceDetail.fenceId = id
+        this.showManage = false
+      },
+      async saveFence() {
+        let res, msg
+        if (this.isEdit) {
+          Reflect.deleteProperty(this.fenceDetail, 'fence')
+          res = await updateNostopFence(this.fenceDetail)
+          msg = '禁停围栏更新成功'
+        } else {
+          res = await insertNostopFence(this.fenceDetail)
+          msg = '禁停围栏添加成功'
+        }
+        if (!res) return
+        this.showFenceDetail = false
+        success(msg)
+        this.getData()
+      }
+    }
+  })
+</script>
+</html>

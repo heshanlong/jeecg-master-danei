@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>违规报警审批</title>
+    <script src="./js/common.js"></script>
+    <script src="component/calendar.js"></script>
+    <style>
+        .approvalDialog .el-dialog{width: 600px;}
+        .approvalDialog .el-dialog__body {padding: 10px 15px;}
+        .approvalDialog p {height: 40px; line-height: 40px;}
+        .approvalDialog p .title {width: 100px; display: inline-block;}
+        .approvalDialog p .el-input {width: 250px;}
+        .approvalDialog p .address {width: 450px;}
+        .approvalDialog .operate {text-align: right; margin-top: 15px;}
+    </style>
+</head>
+<body>
+<div id="violationApprove" class="content">
+    <collapse :show="showSearch">
+        <el-row :gutter="30" class="top">
+            <el-col :xs="24" :sm="12" :md="8"><span>车牌号：</span><el-input v-model="params.licensePlate"></el-input></el-col>
+            <el-col :xs="24" :sm="12" :md="8">
+                <span>车辆类型：</span>
+                <el-select multiple collapse-tags v-model="vehicleType" clearable>
+                    <el-option-group v-for="group in vehicleTypeList" :key="group.id" :label="group.typeName">
+                        <el-option v-for="item in group.items" :key="item.id" :label="item.itemName" :value="item.id"></el-option>
+                    </el-option-group>
+                </el-select>
+            </el-col>
+            <el-col :xs="24" :sm="12" :md="8"><span>所属/申办单位：</span><el-input v-model="params.company"></el-input></el-col>
+            <el-col :xs="24" :sm="12" :md="8">
+                <span>审批状态：</span>
+                <el-select clearable v-model="params.state">
+                    <el-option label="未审批" :value="0"></el-option>
+                    <el-option label="审批通过" :value="1"></el-option>
+                    <el-option label="审批拒绝" :value="2"></el-option>
+                </el-select>
+            </el-col>
+            <el-col :xs="24" :sm="12" :md="8">
+                <span>审批时间：</span>
+                <calendar type="datetime" :begin-time.sync="params.startTime" :end-time.sync="params.endTime"></calendar>
+            </el-col>
+            <el-col :xs="24" :sm="12" :md="8">
+                <p class="group">
+                    <button class="topBtn" @click="search"><i class="glyphicon glyphicon-search"></i> 查询</button>
+                    <button class="topBtn" @click="reset"><i class="glyphicon glyphicon-repeat"></i> 重置</button>
+                </p>
+            </el-col>
+        </el-row>
+    </collapse>
+    <div class="toolbar clearfix">
+        <p class="left">
+            <button class="other" @click="exportData"><i class="glyphicon glyphicon-cloud-download"></i> 导出</button>
+            <button @click="showSearch=!showSearch"><i class="glyphicon glyphicon-search"></i> 检索</button>
+        </p>
+        <control :header-list="headerList" ref="control" @refresh="getData" @change-style="tableStyle=!tableStyle" @change-header="changeHeader"></control>
+    </div>
+    <table-list  ref="tableList" :data-source="dataSource" :loading="loading" :total="total"
+                :pages="pages" :table-style="tableStyle" :header-list="headerList" #operate="{data}">
+        <button v-if="!data.state" class="normal mini" @click="showApproval(data)">审批</button>
+        <span v-else>已结束</span>
+    </table-list>
+    <el-dialog title="车辆违规审批" :visible.sync="showApprovalDialog" class="approvalDialog">
+        <p><span class="title">车牌号：</span><span>{{ approveData.licensePlate }}</span></p>
+        <p><span class="title">车辆类型：</span><span>{{ approveData.itemName }}</span></p>
+        <p><span class="title">所属/申办单位：</span><span>{{ approveData.company }}</span></p>
+        <p><span class="title">违规类型：</span><span>{{ approveData.violationType | violationTypeFilter }}</span></p>
+        <p><span class="title">违规时间：</span><span>{{ approveData.violationTime }}</span></p>
+        <p><span class="title">违规地点：</span><el-input class="address" v-model="approveData.violationAddr"></el-input></p>
+        <p><span class="title">驾驶员姓名：</span><el-input v-model="approveData.driverName"></el-input></p>
+        <p><span class="title">外场驾驶证号码：</span><el-input v-model="approveData.driverLicense"></el-input></p>
+        <p class="operate">
+            <button @click="approve(2)" class="remove">拒绝</button>
+            <button @click="approve(1)" class="other">通过</button>
+        </p>
+    </el-dialog>
+</div>
+</body>
+<script>
+  new Vue({
+    el: '#violationApprove',
+    mixins: [mixin],
+    data: {
+      params: {
+        // startTime: getTodayTime(),
+        // endTime: getTodayTime(true)
+      },
+      vehicleTypeList: [],
+      vehicleType: [],
+      approveData: '',
+      showApprovalDialog: false
+    },
+    mounted () {
+      this.headerList = [
+        {label: '车牌号', prop: 'licensePlate', width: 80, show: true},
+        {label: '驾驶员', prop: 'driverName', width: 80, show: true },
+        {label: '车辆类型', prop: 'itemName', width: 90, show: true },
+        {label: '所属/申办单位', prop: 'company', width: 110, show: true },
+        {label: '违规类型', prop: 'violationType', func: d => getViolationType(d) , width: 100, show: true },
+        {label: '违规时间', prop: 'violationTime', width: 135, show: true },
+        {label: '违规地点', prop: 'violationAddr', width: 120, show: true },
+        {label: '外场驾驶证号码', prop: 'driverLicense', width: 120, show: true },
+        {label: '机坪审批人', prop: 'apronUser', width: 70, show: true },
+        {label: '机坪审批时间', prop: 'apronTime', width: 135, show: true },
+        {label: '准入审批人', prop: 'accessUser', width: 70, show: true },
+        {label: '准入审批时间', prop: 'accessTime', width: 135, show: true },
+        {label: '审批状态', prop: 'state', func: d => ['未审批', '审批通过', '审批拒绝'][d] , width: 60, show: true },
+        {label: '操作', prop: '', width: 80, show: true, operate: true }
+      ]
+      getVehicleType().then( result => { this.vehicleTypeList = result })
+      this.getDataMethod = getViolationApproval
+      this.getData()
+    },
+    watch: {
+      vehicleType (value) {
+        this.params.vehicleCategory = value.join(',')
+      }
+    },
+    filters: {
+      violationTypeFilter (d) {
+        return getViolationType(d)
+      }
+    },
+    methods: {
+      search () {
+        if (this.params.endTime && this.params.beginTime > this.params.endTime) {
+          warning('开始日期不得大于结束日期')
+          return
+        }
+        this.getData()
+      },
+       exportData () {
+
+       },
+      showApproval (data) {
+        this.approveData = {...data}
+        this.showApprovalDialog = true
+      },
+      async approve (state) {
+        let res, msg = `审批${state === 1 ? '通过' : '拒绝'}`
+        let {id, violationAddr, driverName, driverLicense, apronState, accessState} = this.approveData
+        let params = {id, state, username: 'zero', violationAddr, driverName, driverLicense}
+        if (apronState === 0) {
+          res = await violationApprovalApron(params)
+          msg = `机坪${msg}`
+        } else if (accessState === 0) {
+          res = await violationApprovalAccess(params)
+          msg = `准入${msg}`
+        }
+        if (res) {
+          success(msg)
+          this.showApprovalDialog = false
+          this.getData()
+        }
+      }
+    }
+  })
+</script>
+</html>

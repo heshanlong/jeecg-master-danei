@@ -1,0 +1,161 @@
+html,
+body {
+	width: 100%;
+	height: 100%;
+	margin: 0;
+	padding: 0;
+	overflow: hidden;
+}
+
+[v-cloak] {
+	display: none;
+}
+
+.in3line{
+	overflow: hidden;
+	text-overflow: ellipsis;
+	display: box;
+	display: -webkit-box;
+	-webkit-box-orient: vertical;
+    line-clamp: 3;
+    -webkit-line-clamp: 3;
+}
+
+.outer {
+    word-wrap: break-word; 
+    word-break: break-all;
+}
+
+.outer,
+.outer-left,
+.outer-right {
+	height: 100%;
+}
+
+.left, .right {
+	height: 100%;
+	display: -webkit-box;
+	display: box;
+	-webkit-box-orient: vertical;
+	box-orient: vertical;
+	position: relative;
+}
+
+.toolbar {
+	padding: 10px 0;
+}
+
+.map {
+	position: relative;
+	-webkit-box-flex: 1; 
+	box-flex: 1;
+	height: 100%;
+}
+
+.map-content {
+	position: absolute;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	left: 0;
+}
+
+.map, .list {
+	position: relative;
+	-webkit-box-flex: 1; 
+	box-flex: 1;
+	overflow-y: auto;
+}
+
+.list-checkbox:hover {
+    line-clamp: unset;
+    -webkit-line-clamp: unset;
+}
+
+div.smControlLayerSwitcher {
+	width: 211px !important;
+}
+
+div.smControlLayerSwitcher div.layersDivWhite {
+	width: 206px !important;
+}
+
+.olPopup {
+	-webkit-transform: translate3d(-50%, -100%, 0);
+	transform: translate3d(-50%, -100%, 0);
+}
+
+.smPopupContent {
+    padding: 0 !important;
+    overflow: inherit !important;
+}
+
+.map-popup {
+	color: #fff;
+	background-color: currentcolor;
+	border-radius: 9999px;
+	box-shadow: 0px 0px 4px 0px rgba(0,0,0,0.3);
+	position: relative;
+}
+
+.map-popup:after {
+	content: "";
+	position: absolute;
+	top: 100%;
+	left: 50%;
+	-webkit-transform: translate3d(-50%, 0, 0);
+	transform: translate3d(-50%, 0, 0);
+	width: 0;
+	height: 0;
+	border-style: solid;
+	border-width: 4px 6px 0 6px;
+	border-color: currentcolor transparent transparent transparent;
+}
+
+.map-popup-con {
+	font-size: 0.875em;
+	line-height: 1.4286;
+	padding: 0.25em 0.75em;
+	color: #333;
+	text-align: center;
+}
+
+.map-popup-text {
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+.markout {
+	position: absolute;
+	right: 0.5em;
+	bottom: 0.5em;
+	z-index: 9999;
+	padding: 0.5em;
+	background-color: rgba(255, 255, 255, 1);
+	border-radius: 0.5em;
+	border: 1px solid #BBB;
+	box-shadow: 0 0 0.5rem rgba(0, 0, 0, 0.3);
+}
+
+.markout-item.red {
+	color: #E41A1C;
+}
+
+.markout-item.black {
+	color: #333;
+}
+
+.markout-sign {
+	display: inline-block;
+	width: 3em;
+	height: 1em;
+	border: 0.1875em solid currentcolor;
+	background-color: rgba(82, 166, 255, 0);
+	vertical-align: middle;
+}
+
+.markout-text {
+	font-size: 0.875em;
+	line-height: 1.4286;
+	vertical-align: baseline;
+}

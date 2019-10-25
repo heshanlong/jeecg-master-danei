@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>车辆白名单</title>
+    <script src="./js/common.js"></script>
+    <script src="./component/delConfirm.js"></script>
+    <style>
+        .detail .el-input { width: 200px; }
+        .detail .el-textarea { width: 320px; position: relative; top: 10px; }
+        .detailDialog .el-dialog { width: 500px; }
+        .detailDialog .el-dialog__body { padding: 10px 15px; }
+        .detailDialog p:last-of-type { text-align: right; margin-top: 25px; }
+    </style>
+</head>
+<body>
+<div id="whiteList" class="content">
+    <collapse :show="showSearch">
+        <el-row :gutter="30" class="top">
+            <el-col :xs="24" :sm="12" :md="8"><span>车牌号：</span><el-input v-model="params.licensePlate"></el-input></el-col>
+            <el-col :xs="24" :sm="12" :md="8">
+                <span>车辆类型：</span>
+                <el-select multiple collapse-tags v-model="vehicleType" clearable>
+                    <el-option-group v-for="group in vehicleTypeList" :key="group.id" :label="group.typeName">
+                        <el-option v-for="item in group.items" :key="item.id" :label="item.itemName" :value="item.id"></el-option>
+                    </el-option-group>
+                </el-select>
+            </el-col>
+            <el-col :xs="24" :sm="12" :md="8"><span>所属单位：</span><el-input v-model="params.company"></el-input></el-col>
+            <el-col :xs="24" :sm="12" :md="8">
+                <p class="group">
+                    <button class="topBtn" @click="getData(1)"><i class="glyphicon glyphicon-search"></i> 查询</button>
+                    <button class="topBtn" @click="reset('vehicleType')"><i class="glyphicon glyphicon-repeat"></i> 重置</button>
+                </p>
+            </el-col>
+        </el-row>
+    </collapse>
+    <div class="toolbar clearfix">
+        <p class="left">
+            <button class="add" @click="add(1)"><i class="glyphicon glyphicon-plus"></i> 录入</button>
+            <button class="edit" @click="add(0)" :disabled="selectedItems.length !== 1"><i class="glyphicon glyphicon-edit"></i> 编辑</button>
+            <button class="remove" @click="showConfirm=true" :disabled="selectedItems.length < 1"><i class="glyphicon glyphicon-remove"></i> 批量删除</button>
+            <button class="other" @click="showImportDialog=true"><i class="glyphicon glyphicon-cloud-upload"></i> 导入</button>
+            <button class="other" @click="exportData"><i class="glyphicon glyphicon-cloud-download"></i> 导出</button>
+            <button @click="showSearch=!showSearch"><i class="glyphicon glyphicon-search"></i> 检索</button>
+        </p>
+        <control :header-list="headerList" ref="control" @refresh="getData" @change-style="tableStyle=!tableStyle" @change-header="changeHeader"></control>
+    </div>
+    <table-list @selected-change="selectedItems=$event" ref="tableList" :data-source="dataSource" :loading="loading" :total="total"
+                :pages="pages" :table-style="tableStyle" :show-select="true" :header-list="headerList" #operate="{data}">
+        <button @click.stop="remove(data)" class="remove mini">删除</button>
+    </table-list>
+    <el-dialog class="detailDialog" append-to-body title="车辆白名单" :close-on-click-modal="false" :visible.sync="showDetailDialog" top="15vh">
+        <el-form :model="detail" class="detail" label-width="100px" ref="detailForm" label-position="right">
+            <el-form-item label="车牌号：" prop="licensePlate" :rules="{required: true, message: '车牌号不能为空'}">
+                <span v-if="isEdit">{{ detail.licensePlate }}</span>
+                <el-select v-model="detail.licensePlate" @change="selectedVehicle" v-else filterable placeholder="请选择">
+                    <el-option v-for="item in vehicleList" :key="item.id" :value="item.licensePlate"></el-option>
+                </el-select>
+            </el-form-item>
+            <el-form-item label="车辆类型：">
+                <span>{{ detail.itemName }}</span>
+            </el-form-item>
+            <el-form-item label="所属单位：">
+                <span>{{ detail.company }}</span>
+            </el-form-item>
+            <el-form-item label="添加人：">
+                <span>{{ detail.addUser }}</span>
+            </el-form-item>
+            <el-form-item label="添加时间：">
+                <span>{{ detail.insertTime }}</span>
+            </el-form-item>
+            <el-form-item label="添加理由：">
+                <el-input type="textarea" v-model="detail.addReson" :rows="4" resize="none"></el-input>
+            </el-form-item>
+        </el-form>
+        <p>
+            <button class="sure" @click="addWhiteList">确定</button>
+            <button @click="showDetailDialog=false">关闭</button>
+        </p>
+        <footer slot="footer"></footer>
+    </el-dialog>
+    <el-dialog class="importDialog" title="导入白名单" :visible.sync="showImportDialog" top="30vh">
+        <el-upload :action="importDriverUrl" :on-success="importSuccess" :on-error="importFailed">
+            <button>选择文件</button>
+            <div slot="tip" class="el-upload__tip">只能上传excel文件</div>
+        </el-upload>
+        <footer slot="footer"></footer>
+    </el-dialog>
+    <del-confirm :show.sync="showConfirm" @remove="batchRemove"></del-confirm>
+</div>
+</body>
+<script>
+  new Vue({
+    el: '#whiteList',
+    mixins: [mixin],
+    data: {
+      params: {},
+      vehicleTypeList: [],
+      vehicleType: [],
+      vehicleList: [],
+      selectedItems: [],
+      showDetailDialog: false,
+      showImportDialog: false,
+      importDriverUrl: UPLOAD_WHITELIST,
+      detail: {},
+      isEdit: false,
+      showConfirm: false
+    },
+    mounted () {
+      this.getDataMethod = getWhiteList
+      this.headerList = [
+        {label: '车牌号', prop: 'licensePlate', width: 85, show: true},
+        {label: '车辆类型', prop: 'itemName', width: 100, show: true },
+        {label: '所属单位', prop: 'company', width: 140, show: true },
+        {label: '添加人', prop: 'addUser', width: 70, show: true },
+        {label: '添加日期', prop: 'addTime', width: 85, show: true },
+        {label: '添加理由', prop: 'addReson', width: 150, show: true },
+        {label: '操作', prop: '', width: 80, show: true, operate: true}
+      ]
+      getVehicleType().then( result => { this.vehicleTypeList = result })
+      getVehicles({idType: 0}).then( result => { this.vehicleList = result.data })
+      this.getData()
+    },
+    watch: {
+      vehicleType (value) {
+        this.params.vehicleCategory = value.join(',')
+      }
+    },
+    methods: {
+      selectedVehicle (value) {
+        let vehicle = this.vehicleList.find(item => item.licensePlate === value)
+        if (vehicle) {
+          this.detail.company = vehicle.company
+          this.detail.itemName = vehicle.itemName
+        }
+      },
+      add (b) {
+        this.isEdit = !b
+        this.showDetailDialog = true
+        if (this.isEdit) {
+          let detail = {...this.dataSource[this.selectedItems[0]]}
+          detail.insertTime = detail.addTime
+          Reflect.deleteProperty(detail, 'addTime')
+          this.detail = detail
+        } else {
+          this.detail =  {
+            addUser: getUserName(),
+            insertTime: getToday('date'),
+          }
+        }
+        this.$nextTick(() => {
+          this.$refs.detailForm.clearValidate()
+        })
+      },
+      addWhiteList () {
+        this.$refs.detailForm.validate(async valid => {
+          if (!valid) return
+          let res, msg
+          if (this.isEdit) {
+            res = await updateWhiteList(this.detail)
+            msg = '车辆白名单表更新成功'
+          } else {
+            res = await insertWhiteList(this.detail)
+            msg = '车辆白名单表添加成功'
+          }
+          if (res) {
+            this.showDetailDialog = false
+            success(msg)
+            this.getData()
+          }
+        })
+      },
+      importSuccess () {
+        success('车辆白名单表导入成功')
+        this.showImportDialog = false
+        this.getData()
+      },
+      importFailed () {
+        warning('车辆白名单表导入失败')
+      },
+      exportData () {
+        window.open(EXPORT_WHITELIST)
+      },
+      async batchRemove () {
+        let selectedIds = this.selectedItems.map(index => this.dataSource[index].id)
+        let res = await batchDeleteWhiteList({idArray: selectedIds})
+        if (res) {
+          success('车辆白名单表删除成功')
+          this.getData()
+        }
+      },
+      remove (row) {
+        delConfirm().then(async () => {
+          let res = await deleteWhiteList({id: row.id})
+          if (res) {
+            success('车辆白名单表删除成功')
+            this.getData()
+          }
+        })
+      }
+    }
+  })
+</script>
+</html>

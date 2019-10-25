@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script src="./js/common.js"></script>
+    <style>
+        html, body {
+            padding: 0;
+            margin: 0;
+            width: 100%;
+            height: 100%;
+        }
+        ul {
+            list-style: none;
+            padding-left: 25px;
+        }
+        li {
+            cursor: pointer;
+            height: 25px;
+            font-size: 15px;
+            padding-left: 20px;
+        }
+
+        li.menuTitle {
+            pointer-events: none;
+            font-size: 15px;
+            font-weight: bolder;
+            padding-left: 0;
+        }
+
+        li:hover {
+            color: blue;
+        }
+        .pageTitle {
+            display: flex;
+            height: 100%;
+            width: 120px;
+            justify-content: center;
+            align-items: center;
+            border: 1px solid lightgray;
+            box-sizing: border-box;
+            border-top-left-radius: 8px;
+            border-top-right-radius: 8px;
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body>
+    <div style="width: 100%;height: 100%;" id="index">
+        <div style="width: 100%;height: 80px;border-bottom: 1px solid lightgray;">
+            <!--<span style="color: red; text-align: center; display: block; padding-top: 30px; font-size: 20px; font-weight: bolder">看红框里面的内容，其他的不要管</span>-->
+        </div>
+        <div style="width: 100%;height: calc(100% - 81px);">
+            <div style="width: 160px;border-right: 1px solid lightgray;height: 100%;float: left;">
+                <ul>
+                    <li v-for="(item, i) in arr" @click="index=i" :class="{'menuTitle': item.isTitle}" v-cloak>{{ item.title }}</li>
+                </ul>
+            </div>
+            <div style="height: 100%;width: calc(100% - 161px);float: left;">
+                <div style="width: 100%;height: 40px;border-bottom: 1px solid lightgray;">
+                    <span class="pageTitle" v-cloak>{{ current.title }}</span>
+                </div>
+                <div style="width: 100%;height: calc(100% - 41px); box-sizing: border-box">
+                    <iframe style="border: none;box-sizing:border-box;width: 100%;height: 100%;" :src="current.src" frameborder="0"></iframe>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+<script>
+    new Vue({
+      el: '#index',
+      data: {
+        arr: [
+          {title: '基础信息', isTitle: true},
+          {title: '驾驶员信息', src: 'driverInfo.html'},
+          {title: '民航车辆信息', src: 'aviationVehicleInfo.html'},
+          {title: '施工车辆信息', src: 'constructVehicleInfo.html'},
+          {title: '车辆白名单', src: 'whiteList.html'},
+          {title: '车辆类型', src: 'vehicleType.html'},
+          {title: '违规类型', src: 'violationType.html'},
+          {title: '位置服务', isTitle: true},
+          {title: '位置定位', src: 'location.html'},
+          {title: '轨迹回放', src: 'track.html'},
+          {title: '电子围栏', isTitle: true},
+          {title: '施工围栏', src: 'constructFence.html'},
+          {title: '跨越围栏', src: 'spanFence.html'},
+          {title: '限速围栏', src: 'rateLimitingFence.html'},
+          {title: '禁停围栏', src: 'forbidFence.html'},
+          {title: '飞行区围栏', src: 'flightFence.html'},
+          {title: '通行区围栏', src: 'trafficFence.html'},
+          {title: '违规报警', isTitle: true},
+          {title: '施工围栏报警', src: 'constructAlarm.html'},
+          {title: '跨越围栏报警', src: 'spanAlarm.html'},
+          {title: '限速围栏报警', src: 'rateLimitingAlarm.html'},
+          {title: '禁停围栏报警', src: 'forbidAlarm.html'},
+          {title: '通行区围栏报警', src: 'trafficAlarm.html'},
+          {title: '车辆违规查询', src: 'violationQuery.html'},
+          {title: '车辆违规审批', src: 'violationApprove.html'},
+          {title: '查询统计', isTitle: true},
+          {title: '车辆使用统计', src: 'vehicleStatistics.html'},
+          {title: '道路使用统计', src: 'roadStatistics.html'}
+        ],
+        index: 9,
+      },
+      computed: {
+        current () {
+          return this.arr[this.index] || {}
+        }
+      }
+    })
+</script>
+</html>

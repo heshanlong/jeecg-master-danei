@@ -1,0 +1,114 @@
+#通用文件上传代码
+<t:base type="bootstrap,bootstrap-table,layer,validform,bootstrap-form,jquery,easyui,DatePicker,common"></t:base>
+<div class="form-group">
+    <label for="isEnable" class="col-sm-3 control-label">是否启用：</label>
+    <div class="col-sm-7">
+        <jsp:include page= "/webpage/common/jsp/upload.jsp">
+            <jsp:param name= "name" value= "files"/>   //附件字段名
+            <jsp:param name= "ids" value= "${files.ids}"/>  //附件的主键id集合
+            <jsp:param name= "value" value= "${files.paths}"/> //附件的路径集合
+            <jsp:param name= "fileNames" value= "${files.fileNames}"/> //附件的文件名集合
+            <jsp:param name= "sizes" value= "${files.sizes}"/> //附件的大小集合
+            <jsp:param name= "directory" value= "aaaa"/> //上传至服务器的目录名
+            <jsp:param name= "multiple" value= "multiple"/> //是否允许多选
+            <jsp:param name= "required" value= "required"/> //是否必须上传
+            <jsp:param name= "disable" value= "disable"/> //是否禁用
+            <jsp:param name= "typeSwf" value= "0"/> //文件是否支持在线预览 0不转 1转
+            <jsp:param name= "acceptNum" value= "1"/>
+            <jsp:param name= "distinct" value= "rulesregulations"/>//去重，
+            <jsp:param name= "module" value= "${famsRulesregulationsPage.id}"/>//所需要的参数，比如 id
+            <jsp:param name= "acceptFileType" value= ".txt,.pdf"/> //文件类型限制，不传默认所有,可以传限制的后缀
+             《1》上传.csv格式的
+
+            <input text="file" accept=".csv" />
+
+            《2》上传.xls格式
+
+            <input text="file"  accept="application/vnd.ms-excel"/>
+
+            《3》上传.xslx格式
+
+            <input text="fiel" accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"/>
+
+            《4》上传.png/.jpg/etc格式
+
+            <input type="file" accept="text/plain" />
+
+            《5》上传图片格式
+
+            <input type="file" accept="image/*" />
+
+            《6》上传.htm,.html格式
+
+            <input type="file" accept="text/html" />
+
+            《7》上传video(.avi, .mpg, .mpeg, .mp4)格式
+
+            <input type="file" accept="video/*" />
+
+            《8》上传audio(.mp3, .wav, etc)格式
+
+            <input type="file" accept="audio/*" />
+
+            《9》上传.pdf格式
+
+            <input type="file" accept=".pdf" />
+
+            《10》如果限制两种文件格式，同时限制
+
+            <input type="file" accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel">
+
+        </jsp:include>
+    </div>
+</div>
+
+#组织机构选择通用插件
+<div class="col-sm-7">
+    <div class="input-group" style="width:100%">
+        <input type="text" maxlength="200" readonly="readonly" class="form-control input-sm"
+               placeholder="请输入施工申报单位" datatype="*" ignore="checked"/>
+        <input name="workApproveDepart" type="hidden"  value=""/>
+        <a href="#" class="easyui-linkbutton" plain="true" icon="icon-search" onclick="openDepartmentSelect(this)">选择</a>
+        <a href="#" class="easyui-linkbutton" plain="true" icon="icon-redo" onclick="callbackClean(this)">清空</a>
+    </div>
+</div>
+
+#时间控件
+<t:base type="jquery,easyui,tools,DatePicker,common"></t:base>
+<div class="input-group" style="width:100%">
+    <input id="workStartTime" name="workStartTime" type="text" style="height: 28px;" onchange="checkTimeSequence(this,'workStartTime','workEndTime')" readonly="readonly" class="form-control laydate-datetime Wdate" onClick="WdatePicker({dateFmt:'yyyy-MM-dd HH:mm:ss'})" datatype="*" ignore="checked"  />
+    <span class="Validform_checktip"></span>
+    <label class="Validform_label" style="display: none;">施工开始时间</label>
+</div>
+
+#引用common.js
+<t:base type="common"></t:base>
+
+# if else
+<c:choose>
+    <c:when test="${fn:length(workSafes)>0}">
+    </c:when>
+    <c:otherwise>
+    </c:otherwise>
+</c:choose>
+
+#循环
+<c:forEach items="${reply}" var="item" varStatus="vs">
+</c:forEach>
+
+#确认框
+layer.confirm('确定提交该申请吗？',{
+    btn:['确认','取消']
+},function(index) {
+
+    layer.close(index);
+},function(){
+    return;
+})
+
+#时间格式化（字符串）
+DATE_FORMAT(now(),'%Y-%m-%d %H:%i:%S')
+
+#bootstrap-curdtools.js
+
+在配置文件my.cnf中关闭sql_mode=ONLY_FULL_GROUP_BY.。msqyl的默认配置是sql_mode=ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION。可以把ONLY_FULL_GROUP_BY去掉，也可以去掉所有选项设置成sql_mode=，如果你确信其他选项不会造成影响的话。

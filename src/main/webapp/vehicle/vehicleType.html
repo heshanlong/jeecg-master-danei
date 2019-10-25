@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>车辆类型</title>
+    <script src="./js/common.js"></script>
+    <style>
+        .addTypeDialog .el-dialog { width: 410px; }
+        .addTypeDialog .itemName { display: inline-block; width: 150px; }
+        .addTypeDialog .el-input { width: 200px; }
+        .addTypeDialog .el-dialog__body { padding: 10px 15px; }
+        .addTypeDialog p:nth-of-type(2) { margin-top: 10px; }
+        .addTypeDialog p:last-of-type { margin-top: 25px; text-align: right; }
+        .deleteTypeDialog .el-dialog { width: 410px; }
+        .deleteTypeDialog .el-dialog__body { padding-top: 10px }
+        .deleteTypeDialog p:first-child { margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <div id="vehicleType" class="content">
+        <div class="toolbar clearfix">
+            <control :header-list="headerList" ref="control" @refresh="getData" @change-style="tableStyle=!tableStyle" @change-header="changeHeader"></control>
+        </div>
+        <table-list ref="tableList" :data-source="dataSource" :loading="loading" :total="total"
+                    :pages="pages" :header-list="headerList" :table-style="tableStyle" #operate="{data}">
+            <button @click.stop="add(data)" class="other mini">增加</button>
+            <button @click.stop="remove(data)" class="remove mini">删除</button>
+        </table-list>
+        <el-dialog class="addTypeDialog" :visible.sync="showAddTypeDialog" title="增加车辆类型" top="30vh">
+            <p><span class="itemName">控制区驾驶证车型代号：</span><span v-cloak>{{ currentType.typeName }}</span></p>
+            <p><span class="itemName">车辆类型：</span><span><el-input v-model="newTypeName" v-focus></el-input></span></p>
+            <p>
+                <button class="sure" @click="addNewType">确定</button>
+                <button @click="showAddTypeDialog=false">关闭</button>
+            </p>
+            <footer slot="footer"></footer>
+        </el-dialog>
+        <el-dialog class="deleteTypeDialog" :visible.sync="showDeleteDialog" title="删除车辆类型" top="25vh">
+            <p><span>控制区驾驶证车型代号：</span><span v-cloak>{{ currentType.typeName }}</span></p>
+            <el-table :data="vehicleSubTypeList" max-height="300" border>
+                <el-table-column align="center" prop="itemName" label="车辆类型"></el-table-column>
+                <el-table-column align="center" label="操作" #default="{row}">
+                    <button class="remove mini" @click="deleteType(row)">删除</button>
+                </el-table-column>
+            </el-table>
+            <footer slot="footer"></footer>
+        </el-dialog>
+    </div>
+</body>
+<script>
+    new Vue({
+      el: '#vehicleType',
+      mixins: [mixin],
+      data: {
+        vehicleTypeList: [],
+        currentType: '',
+        showAddTypeDialog: false,
+        newTypeName: '',
+        showDeleteDialog: false,
+        vehicleSubTypeList: []
+      },
+      mounted () {
+        this.getDataMethod = getVehicleTypeList
+        this.headerList = [
+          {label: '控制区驾驶证车型代号', prop: 'typeName', width: 150, show: true},
+          {label: '车辆类型', prop: 'items', func: this.getTypeList, width: 150, show: true},
+          {label: '控制区其他准予驾驶的准驾车型代号', prop: 'otherName', width: 150, show: true},
+          {label: '持有中华人民共和国机动车驾驶证准驾车型', prop: 'permittedType', width: 150, show: true},
+          {label: '操作', prop: '', width: 150, show: true, operate: true}
+        ]
+        this.getData()
+      },
+      methods: {
+        getTypeList (items) {
+          if (items) return items.map(type => type.itemName).join('、')
+          return ''
+        },
+        add (type) {
+          this.currentType = type
+          this.showAddTypeDialog = true
+        },
+        async addNewType () {
+          if (!this.newTypeName.length) {
+            warning('车辆类型不能为空')
+            return
+          }
+          let params = { itemName: this.newTypeName, parentId: this.currentType.id }
+          let res = await insertVehicleType(params)
+          if (res) {
+            success('车辆类型表添加成功')
+            this.newTypeName = ''
+            this.showAddTypeDialog = false
+            this.getData(1)
+            updateVehicleType()
+          }
+        },
+        remove (type) {
+          this.currentType = type
+          this.showDeleteDialog = true
+          this.vehicleSubTypeList = type.items
+        },
+        deleteType (data) {
+          delConfirm().then(async () => {
+            let res = await deleteVehicleType({id: data.id})
+            if (res) {
+              success('车辆类型表删除成功')
+              this.showDeleteDialog = false
+              this.getData(1)
+              updateVehicleType()
+            }
+          })
+        }
+      }
+    })
+</script>
+</html>

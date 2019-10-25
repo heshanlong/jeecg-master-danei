@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+    <bean id="processEngineConfiguration" class="org.activiti.spring.SpringProcessEngineConfiguration">
+        <property name="dataSource" ref="dataSource" />
+        <property name="transactionManager" ref="transactionManager" />
+        <property name="databaseSchemaUpdate" value="true" />
+        <property name="jobExecutorActivate" value="false" />
+        <property name="deploymentResources" value="classpath*:/diagrams/**/*.bpmn"/>
+        <!-- 下面这两行是关于中文乱码的，不知道为什么选择微软雅黑不生效，可能和tomcat容器下找不到字库有关系，切忌，修改这里后还要修改java代码 -->
+        <property name="activityFontName" value="宋体"/>
+        <property name="labelFontName" value="宋体"/>
+    </bean>
+
+    <bean id="processEngineFactory" class="org.activiti.spring.ProcessEngineFactoryBean">
+        <property name="processEngineConfiguration" ref="processEngineConfiguration" />
+    </bean>
+
+    <bean id="repositoryService" factory-bean="processEngineFactory" factory-method="getRepositoryService" />
+    <bean id="runtimeService" factory-bean="processEngineFactory" factory-method="getRuntimeService" />
+    <bean id="formService" factory-bean="processEngineFactory" factory-method="getFormService" />
+    <bean id="identityService" factory-bean="processEngineFactory" factory-method="getIdentityService" />
+    <bean id="taskService" factory-bean="processEngineFactory" factory-method="getTaskService" />
+    <bean id="historyService" factory-bean="processEngineFactory" factory-method="getHistoryService" />
+    <bean id="managementService" factory-bean="processEngineFactory" factory-method="getManagementService" />
+</beans>
